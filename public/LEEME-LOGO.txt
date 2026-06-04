@@ -1,0 +1,9 @@
+Coloca aquí el archivo de tu logo con el nombre exacto:  logo.png
+
+- Formato recomendado: PNG con fondo transparente.
+- Alto ideal: entre 80 y 120 px (el ancho se ajusta solo).
+- Si no colocas un logo, el catálogo mostrará automáticamente
+  el ícono de pez + el nombre de la tienda como respaldo.
+
+Si tu logo tiene otro nombre o formato (ej. logo.svg), cambia
+la constante LOGO_URL en src/api/client.ts

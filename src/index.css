@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --color-ocean: #1a3a5c;
+  --color-ocean-light: #2a5a8a;
+  --color-sand: #f5f0e8;
+  --color-sand-dark: #e8dfd2;
+  --color-coral: #e8734a;
+  --color-coral-light: #fef0eb;
+  --color-ink: #1c2833;
+  --color-ink-soft: #576574;
+  --color-ink-faint: #8395a7;
+  --color-line: #dfe6e9;
+  --color-success: #27ae60;
+  --color-danger: #e74c3c;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes kenburns {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.08) translate(-1%, -1%); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in { animation: fadeIn 0.6s ease both; }
+.animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-kenburns { animation: kenburns 8s ease-out both; }
+
+/* Ocultar scrollbar pero permitir scroll */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* Zoom suave al hacer hover en imágenes con cursor */
+.zoom-cursor { cursor: zoom-in; }
