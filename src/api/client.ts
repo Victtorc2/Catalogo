@@ -1,7 +1,11 @@
 import axios from "axios";
 
-const BASE = import.meta.env.VITE_API_URL || "https://web-production-1e1c3.up.railway.app/";
-
+const BASE =
+  (
+    import.meta.env.VITE_API_URL ||
+    "https://web-production-1e1c3.up.railway.app"
+  ).replace(/\/$/, "");
+  
 export const catalogoApi = axios.create({
   baseURL: BASE,
   headers: { "X-API-Key": import.meta.env.VITE_CATALOG_API_KEY || "" },

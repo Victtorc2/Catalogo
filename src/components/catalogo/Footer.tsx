@@ -54,7 +54,7 @@ export function Footer() {
             <span className="font-display text-lg font-extrabold tracking-tight">{STORE_NAME}</span>
           </div>
           <p className="text-sm leading-relaxed text-ice-soft">
-            Tu tienda de artículos de pesca en Nasca. Anzuelos, tanzas, señuelos,
+            Tu tienda de artículos de pesca en Nasca. Anzuelos, vinilos, señuelos,
             cañas, carretes y todo lo que necesitas para tu próxima jornada.
           </p>
           {/* Redes sociales */}

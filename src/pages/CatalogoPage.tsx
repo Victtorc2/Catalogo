@@ -179,51 +179,7 @@ export function CatalogoPage() {
               onShowDetail={setDetalle}
             />
 
-            <ProductSection
-              icon={Sparkles}
-              accent="electric"
-              title="Nuevos ingresos"
-              subtitle="Recién llegados a la base"
-              productos={nuevos}
-              badge="NUEVO"
-              layout="rail"
-              onAdd={carrito.addItem}
-              onShowDetail={setDetalle}
-            />
-
-            <ProductSection
-              icon={TrendingUp}
-              accent="strike"
-              title="Más vendidos"
-              subtitle="Los favoritos del pescador"
-              productos={masVendidos}
-              badge="HOT"
-              layout="rail"
-              onAdd={carrito.addItem}
-              onShowDetail={setDetalle}
-            />
-
-            <ProductSection
-              icon={Anchor}
-              accent="electric"
-              title="Equipamiento recomendado"
-              subtitle="Cañas · carretes · líneas"
-              productos={equipamiento}
-              badge="PRO"
-              onAdd={carrito.addItem}
-              onShowDetail={setDetalle}
-            />
-
-            <ProductSection
-              icon={Crosshair}
-              accent="strike"
-              title="Señuelos letales"
-              subtitle="Diseñados para el ataque"
-              productos={senuelos}
-              layout="rail"
-              onAdd={carrito.addItem}
-              onShowDetail={setDetalle}
-            />
+           
           </div>
         )}
 

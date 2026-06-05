@@ -28,7 +28,7 @@ export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
           {/* Eyebrow */}
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-electric/30 bg-electric/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-electric backdrop-blur-sm animate-slide-up">
             <Waves size={14} />
-            Pesca deportiva · Edición premium
+            Pesca deportiva · Edición Spinning
           </div>
 
           <h1
@@ -37,15 +37,15 @@ export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
           >
             Domina el agua con
             <br className="hidden sm:block" />
-            <span className="gradient-text text-glow"> equipo táctico</span>
-            <span className="gradient-text-strike"> letal</span>.
+            <span className="gradient-text text-glow"> nuestros </span>
+            <span className="gradient-text-strike"> productos</span>.
           </h1>
 
           <p
             className="mt-6 max-w-xl text-base leading-relaxed text-ice-soft sm:text-lg animate-slide-up"
             style={{ animationDelay: "0.16s" }}
           >
-            Cañas, carretes, señuelos y líneas de las marcas líderes del mundo.
+            Cañas, carretes, señuelos y líneas de las marcas líderes.
             Tecnología de élite para el pescador que no acepta perder la batalla.
           </p>
 
