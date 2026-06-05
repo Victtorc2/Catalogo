@@ -1,8 +1,23 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+
+  /* ===== Ocean Tactical Premium ===== */
+  --color-abyss: #071B2A;        /* azul oceánico profundo */
+  --color-abyss-deep: #04101a;   /* fondo más profundo (gradientes) */
+  --color-steel: #1E293B;        /* gris acero */
+  --color-steel-light: #334155;  /* acero claro / bordes */
+  --color-electric: #0EA5E9;     /* azul eléctrico */
+  --color-electric-deep: #0284C7;
+  --color-ice: #F8FAFC;          /* blanco hielo */
+  --color-ice-soft: #cbd5e1;     /* texto secundario */
+  --color-ice-faint: #64748b;    /* texto tenue */
+  --color-strike: #F97316;       /* naranja strike */
+  --color-strike-deep: #EA580C;
+
+  /* ===== Tokens legados (páginas de administración) ===== */
   --color-ocean: #1a3a5c;
   --color-ocean-light: #2a5a8a;
   --color-sand: #f5f0e8;
@@ -17,13 +32,13 @@
   --color-danger: #e74c3c;
 }
 
-/* Animaciones */
+/* ===================== Animaciones ===================== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes kenburns {
@@ -34,14 +49,108 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+@keyframes sweep {
+  0% { transform: translateX(-120%) skewX(-18deg); }
+  60%, 100% { transform: translateX(220%) skewX(-18deg); }
+}
+@keyframes gridDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
 
 .animate-fade-in { animation: fadeIn 0.6s ease both; }
-.animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-kenburns { animation: kenburns 8s ease-out both; }
+.animate-slide-up { animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-kenburns { animation: kenburns 9s ease-out both; }
+.animate-floaty { animation: floaty 6s ease-in-out infinite; }
+
+/* ===================== Utilidades tácticas ===================== */
 
 /* Ocultar scrollbar pero permitir scroll */
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-/* Zoom suave al hacer hover en imágenes con cursor */
 .zoom-cursor { cursor: zoom-in; }
+
+/* Glassmorphism ligero sobre fondo oscuro */
+.glass {
+  background: rgba(30, 41, 59, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+.glass-strong {
+  background: rgba(7, 27, 42, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+/* Glow eléctrico */
+.glow-electric { box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.35), 0 18px 50px -12px rgba(14, 165, 233, 0.45); }
+.glow-strike { box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.35), 0 18px 50px -12px rgba(249, 115, 22, 0.5); }
+.text-glow { text-shadow: 0 0 24px rgba(14, 165, 233, 0.55); }
+
+/* Texto con degradado oceánico */
+.gradient-text {
+  background: linear-gradient(100deg, #f8fafc 0%, #7dd3fc 45%, #0ea5e9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.gradient-text-strike {
+  background: linear-gradient(100deg, #fdba74 0%, #f97316 60%, #ea580c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Rejilla táctica de fondo */
+.tactical-grid {
+  background-image:
+    linear-gradient(rgba(14, 165, 233, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(14, 165, 233, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.tactical-grid-anim { animation: gridDrift 22s linear infinite; }
+
+/* Halo de luz radial */
+.radial-glow {
+  background: radial-gradient(60% 60% at 50% 0%, rgba(14, 165, 233, 0.22) 0%, transparent 70%);
+}
+
+/* Barrido de luz al hacer hover (microinteracción) */
+.sweep-host { position: relative; overflow: hidden; }
+.sweep-host::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 40%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(248, 250, 252, 0.18), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  pointer-events: none;
+}
+.sweep-host:hover::after { animation: sweep 0.9s ease; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(90deg, rgba(51, 65, 85, 0.35) 25%, rgba(71, 85, 105, 0.55) 37%, rgba(51, 65, 85, 0.35) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Scrollbar oscura para listas internas */
+.dark-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+.dark-scroll::-webkit-scrollbar-thumb { background: rgba(14, 165, 233, 0.4); border-radius: 9999px; }
+.dark-scroll::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-kenburns, .animate-floaty, .tactical-grid-anim, .sweep-host:hover::after { animation: none !important; }
+}

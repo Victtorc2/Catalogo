@@ -33,7 +33,7 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
 
   return (
     <div
-      className="group relative overflow-hidden rounded-3xl shadow-lg"
+      className="group relative overflow-hidden rounded-3xl border border-steel-light/40 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.9)]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -54,7 +54,7 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
                 className="absolute inset-0 scale-110 bg-cover bg-center blur-2xl"
                 style={{ backgroundImage: `url(${url})` }}
               />
-              <div className="absolute inset-0 bg-ink/30" />
+              <div className="absolute inset-0 bg-abyss/40" />
 
               {/* Imagen completa, sin recortar */}
               <img
@@ -72,7 +72,7 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
                   type="button"
                   onClick={() => onImageClick(url, b.titulo)}
                   aria-label="Ampliar imagen"
-                  className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-ocean opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-white group-hover:opacity-100"
+                  className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 shadow-sm backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
                 >
                   <Maximize2 size={17} />
                 </button>
@@ -80,9 +80,9 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
 
               {/* Caption sutil (no tapa la imagen) */}
               {(b.titulo || b.descripcion) && (
-                <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-ink/75 to-transparent px-5 pb-5 pt-12">
-                  <p className="font-display text-base font-bold text-white drop-shadow sm:text-lg">{b.titulo}</p>
-                  {b.descripcion && <p className="text-xs text-white/85 sm:text-sm">{b.descripcion}</p>}
+                <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-abyss via-abyss/60 to-transparent px-5 pb-5 pt-12">
+                  <p className="font-display text-base font-extrabold text-ice drop-shadow sm:text-lg">{b.titulo}</p>
+                  {b.descripcion && <p className="text-xs text-ice-soft sm:text-sm">{b.descripcion}</p>}
                 </div>
               )}
             </div>
@@ -94,13 +94,13 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
         <>
           <button
             type="button" onClick={() => goTo(current - 1)} aria-label="Anterior"
-            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-ocean opacity-0 shadow-md backdrop-blur-sm transition-all hover:bg-white group-hover:opacity-100"
+            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 shadow-md backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
           >
             <ChevronLeft size={22} />
           </button>
           <button
             type="button" onClick={() => goTo(current + 1)} aria-label="Siguiente"
-            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/80 text-ocean opacity-0 shadow-md backdrop-blur-sm transition-all hover:bg-white group-hover:opacity-100"
+            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 shadow-md backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
           >
             <ChevronRight size={22} />
           </button>
@@ -109,7 +109,7 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
             {banners.map((_, i) => (
               <button
                 key={i} type="button" onClick={() => goTo(i)} aria-label={`Ir a promoción ${i + 1}`}
-                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-white" : "w-2 bg-white/50 hover:bg-white/80"}`}
+                className={`h-2 rounded-full transition-all duration-300 ${i === current ? "w-6 bg-electric" : "w-2 bg-ice/40 hover:bg-ice/70"}`}
               />
             ))}
           </div>
