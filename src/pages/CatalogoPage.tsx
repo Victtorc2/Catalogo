@@ -35,9 +35,17 @@ export function CatalogoPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [catFilter, setCatFilter] = useState<number | null>(null);
   const [marcaFilter, setMarcaFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+
+  // La búsqueda de texto se aplica con un pequeño retraso (mientras se escribe);
+  // los filtros de categoría/marca y la paginación se aplican al instante.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
   // Imagen ampliada (lightbox) y producto en detalle.
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
@@ -47,7 +55,7 @@ export function CatalogoPage() {
   const catalogoRef = useRef<HTMLDivElement>(null);
   const scrollToCatalogo = () => catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  const sinFiltros = !search.trim() && catFilter === null && marcaFilter === null;
+  const sinFiltros = !debouncedSearch.trim() && catFilter === null && marcaFilter === null;
 
   // Productos (con filtros, paginados en el servidor) + destacados (sin filtros).
   const loadProductos = useCallback(async () => {
@@ -56,7 +64,7 @@ export function CatalogoPage() {
       const [prod, dest] = await Promise.all([
         catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", {
           params: {
-            search: search.trim() || undefined,
+            search: debouncedSearch.trim() || undefined,
             categoria_id: catFilter ?? undefined,
             marca: marcaFilter ?? undefined,
             page,
@@ -73,9 +81,9 @@ export function CatalogoPage() {
       setDestacados(dest.data.items);
     } catch { setError("No se pudo cargar el catálogo."); }
     finally { setLoading(false); }
-  }, [search, catFilter, marcaFilter, sinFiltros, page]);
+  }, [debouncedSearch, catFilter, marcaFilter, sinFiltros, page]);
 
-  useEffect(() => { const t = setTimeout(loadProductos, 350); return () => clearTimeout(t); }, [loadProductos]);
+  useEffect(() => { void loadProductos(); }, [loadProductos]);
 
   // Categorías y banners (una vez).
   useEffect(() => {
@@ -98,19 +106,12 @@ export function CatalogoPage() {
     setPage(1);
   };
   const handleMarca = (m: string | null) => { setMarcaFilter(m); setPage(1); };
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
-  // ===== Showcase de destacados (solo sin filtros) =====
-  const disponibles = useMemo(() => productos.filter((p) => p.estado !== "agotado"), [productos]);
-
+  // ===== Showcase de destacados: SOLO los productos marcados como destacados.
+  // Sin fallback: si no hay ninguno marcado, la sección no se muestra (antes
+  // mostraba "los más recientes", que parecían destacados sin serlo).
   const destacadosTop = useMemo(() => destacados.slice(0, 8), [destacados]);
-
-  // Fallback del showcase cuando aún no hay destacados marcados: los más
-  // recientes (mayor id) de la página actual.
-  const nuevos = useMemo(
-    () => [...disponibles].sort((a, b) => b.id - a.id).slice(0, 8),
-    [disponibles],
-  );
 
   // Paginación: el servidor devuelve solo la página actual; `total` y
   // `totalPages` vienen en la respuesta.
@@ -140,8 +141,8 @@ export function CatalogoPage() {
           </section>
         )}
 
-        {/* ===== Secciones temáticas (showcase) ===== */}
-        {sinFiltros && !loading && (
+        {/* ===== Showcase: solo productos realmente marcados como destacados ===== */}
+        {sinFiltros && !loading && destacadosTop.length > 0 && (
           <div className="space-y-14">
             <ProductSection
               id="destacados"
@@ -149,13 +150,11 @@ export function CatalogoPage() {
               accent="strike"
               title="Productos destacados"
               subtitle="Selección élite del arsenal"
-              productos={destacadosTop.length ? destacadosTop : nuevos}
+              productos={destacadosTop}
               badge="TOP"
               onAdd={carrito.addItem}
               onShowDetail={setDetalle}
             />
-
-           
           </div>
         )}
 
