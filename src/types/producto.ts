@@ -24,3 +24,12 @@ export interface CatalogoMarca {
   nombre: string;
   cantidad_productos: number;
 }
+
+/** Respuesta paginada genérica del backend ({ items, total, page, ... }). */
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}

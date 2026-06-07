@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Upload, Image, Trash2, ArrowLeft, Star, Search, FileText, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { adminApi, getError, UPLOADS_BASE } from "@/api/client";
+import type { Paginated } from "@/types/producto";
 
 interface Producto {
   id: number; codigo: string; nombre: string; marca: string;
@@ -9,6 +10,10 @@ interface Producto {
   imagen_url: string | null; destacado: boolean;
   descripcion: string | null; ficha_tecnica: string | null;
 }
+
+interface Categoria { id: number; nombre: string; }
+
+const PAGE_SIZE = 10;
 
 export function AdminProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -18,13 +23,60 @@ export function AdminProductosPage() {
   const [soloDestacados, setSoloDestacados] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
 
+  // Filtro encadenado categoría → marca y paginación (lado servidor).
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [catFilter, setCatFilter] = useState<number | null>(null);
+  const [marcas, setMarcas] = useState<string[]>([]);
+  const [marcaFilter, setMarcaFilter] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [destacadosCount, setDestacadosCount] = useState(0);
+
+  // Categorías para el primer nivel del filtro (una sola vez).
+  useEffect(() => {
+    adminApi.get<Categoria[]>("/categorias").then((r) => setCategorias(r.data)).catch(() => {});
+  }, []);
+
+  // Marcas del segundo nivel: se acotan a la categoría elegida.
+  useEffect(() => {
+    adminApi
+      .get<string[]>("/productos/marcas", { params: { categoria: catFilter ?? undefined } })
+      .then((r) => setMarcas(r.data))
+      .catch(() => setMarcas([]));
+  }, [catFilter]);
+
+  // Conteo total de destacados para el badge del botón.
+  const refreshDestacadosCount = useCallback(() => {
+    adminApi
+      .get<Paginated<Producto>>("/productos", { params: { destacado: true, page_size: 1 } })
+      .then((r) => setDestacadosCount(r.data.total))
+      .catch(() => {});
+  }, []);
+  useEffect(() => { refreshDestacadosCount(); }, [refreshDestacadosCount]);
+
   const load = useCallback(async () => {
     setLoading(true);
-    try { setProductos((await adminApi.get("/productos")).data); }
-    catch (e) { setMsg({ text: getError(e), ok: false }); }
+    try {
+      const r = await adminApi.get<Paginated<Producto>>("/productos", {
+        params: {
+          search: q.trim() || undefined,
+          categoria: catFilter ?? undefined,
+          marca: marcaFilter ?? undefined,
+          destacado: soloDestacados ? true : undefined,
+          page,
+          page_size: PAGE_SIZE,
+        },
+      });
+      setProductos(r.data.items);
+      setTotal(r.data.total);
+      setTotalPages(Math.max(1, r.data.total_pages));
+    } catch (e) { setMsg({ text: getError(e), ok: false }); }
     finally { setLoading(false); }
-  }, []);
-  useEffect(() => { void load(); }, [load]);
+  }, [q, catFilter, marcaFilter, soloDestacados, page]);
+
+  // Debounce: evita una petición por cada tecla en la búsqueda.
+  useEffect(() => { const t = setTimeout(() => { void load(); }, 300); return () => clearTimeout(t); }, [load]);
 
   const upload = async (id: number, file: File) => {
     const f = new FormData(); f.append("file", file);
@@ -40,6 +92,7 @@ export function AdminProductosPage() {
       await adminApi.put(`/productos/${p.id}/destacado`, null, { params: { destacado: !p.destacado } });
       setMsg({ text: p.destacado ? "Quitado de destacados" : "Marcado como destacado", ok: true });
       await load();
+      refreshDestacadosCount();
     } catch (e) { setMsg({ text: getError(e), ok: false }); }
   };
   const guardarInfo = async (id: number, descripcion: string, ficha: string) => {
@@ -51,15 +104,11 @@ export function AdminProductosPage() {
     } catch (e) { setMsg({ text: getError(e), ok: false }); }
   };
 
-  const filtrados = useMemo(() => {
-    let r = productos;
-    if (soloDestacados) r = r.filter((p) => p.destacado);
-    const t = q.trim().toLowerCase();
-    if (t) r = r.filter((p) => p.nombre.toLowerCase().includes(t) || p.marca.toLowerCase().includes(t) || p.codigo.toLowerCase().includes(t));
-    return r;
-  }, [productos, q, soloDestacados]);
-
-  const totalDest = productos.filter((p) => p.destacado).length;
+  // Handlers de filtros: al cambiar cualquiera se vuelve a la página 1.
+  const handleCategoria = (id: number | null) => { setCatFilter(id); setMarcaFilter(null); setPage(1); };
+  const handleMarca = (m: string | null) => { setMarcaFilter(m); setPage(1); };
+  const handleSearch = (v: string) => { setQ(v); setPage(1); };
+  const handleDestacados = () => { setSoloDestacados((v) => !v); setPage(1); };
 
   return (
     <div className="min-h-screen bg-sand/40">
@@ -74,28 +123,57 @@ export function AdminProductosPage() {
 
         {msg && <div className={`mb-4 rounded-lg px-4 py-2 text-sm ${msg.ok ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}>{msg.text}</div>}
 
-        <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
-            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto…"
+            <input type="search" value={q} onChange={(e) => handleSearch(e.target.value)} placeholder="Buscar producto…"
               className="w-full rounded-lg border border-line bg-white py-2.5 pl-9 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-ocean focus:outline-none" />
           </div>
-          <button type="button" onClick={() => setSoloDestacados((v) => !v)}
+          <button type="button" onClick={handleDestacados}
             className={`flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
               soloDestacados ? "border-coral bg-coral text-white" : "border-line bg-white text-ink-soft hover:border-coral/40"
             }`}>
-            <Star size={15} className={soloDestacados ? "fill-white" : ""} /> Destacados ({totalDest})
+            <Star size={15} className={soloDestacados ? "fill-white" : ""} /> Destacados ({destacadosCount})
           </button>
         </div>
 
-        {loading ? <p className="py-20 text-center text-ink-faint">Cargando…</p> : filtrados.length === 0 ? (
+        {/* Filtro encadenado: primero la categoría, luego la marca */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <select value={catFilter ?? ""} onChange={(e) => handleCategoria(e.target.value ? Number(e.target.value) : null)}
+            className="rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink focus:border-ocean focus:outline-none">
+            <option value="">Todas las categorías</option>
+            {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+          <select value={marcaFilter ?? ""} onChange={(e) => handleMarca(e.target.value || null)} disabled={marcas.length === 0}
+            className="rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink focus:border-ocean focus:outline-none disabled:opacity-50">
+            <option value="">Todas las marcas</option>
+            {marcas.map((m) => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+
+        {loading ? <p className="py-20 text-center text-ink-faint">Cargando…</p> : productos.length === 0 ? (
           <p className="py-16 text-center text-sm text-ink-faint">No hay productos que coincidan.</p>
         ) : (
-          <div className="grid gap-3">
-            {filtrados.map((p) => (
-              <Row key={p.id} p={p} onUpload={upload} onDelImg={delImg} onToggleDestacado={toggleDestacado} onEdit={() => setEditando(p)} />
-            ))}
-          </div>
+          <>
+            <p className="mb-3 text-sm text-ink-faint">
+              <span className="font-semibold text-ink">{total}</span> producto{total !== 1 ? "s" : ""}
+              {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
+            </p>
+            <div className="grid gap-3">
+              {productos.map((p) => (
+                <Row key={p.id} p={p} onUpload={upload} onDelImg={delImg} onToggleDestacado={toggleDestacado} onEdit={() => setEditando(p)} />
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button type="button" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink-soft hover:bg-sand disabled:cursor-not-allowed disabled:opacity-40">Anterior</button>
+                <span className="text-sm text-ink-faint">Página {page} de {totalPages}</span>
+                <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-lg border border-line bg-white px-4 py-2 text-sm font-medium text-ink-soft hover:bg-sand disabled:cursor-not-allowed disabled:opacity-40">Siguiente</button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

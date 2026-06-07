@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Fish, MessageCircle, Flame, Sparkles, TrendingUp,
-  Anchor, Crosshair, LayoutGrid,
-} from "lucide-react";
+import { Fish, MessageCircle, Flame, LayoutGrid } from "lucide-react";
 import { catalogoApi } from "@/api/client";
 import { useCarrito } from "@/hooks/useCarrito";
 import { Header } from "@/components/layout/Header";
@@ -18,22 +15,18 @@ import { ImageLightbox } from "@/components/catalogo/ImageLightbox";
 import { ProductDetailModal } from "@/components/catalogo/ProductDetailModal";
 import { FloatingSocial } from "@/components/catalogo/FloatingSocial";
 import { Footer } from "@/components/catalogo/Footer";
-import type { CatalogoProducto, CatalogoCategoria, CatalogoMarca } from "@/types/producto";
+import type { CatalogoProducto, CatalogoCategoria, CatalogoMarca, Paginated } from "@/types/producto";
 import type { Banner } from "@/types/banner";
 
 const PAGE_SIZE = 12;
-
-/** Coincidencia laxa de categoría por palabras clave. */
-function matchCategoria(p: CatalogoProducto, claves: string[]) {
-  const c = p.categoria?.toLowerCase() ?? "";
-  return claves.some((k) => c.includes(k));
-}
 
 export function CatalogoPage() {
   const carrito = useCarrito();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [productos, setProductos] = useState<CatalogoProducto[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [destacados, setDestacados] = useState<CatalogoProducto[]>([]);
   const [categorias, setCategorias] = useState<CatalogoCategoria[]>([]);
   const [marcas, setMarcas] = useState<CatalogoMarca[]>([]);
@@ -56,27 +49,31 @@ export function CatalogoPage() {
 
   const sinFiltros = !search.trim() && catFilter === null && marcaFilter === null;
 
-  // Productos (con filtros) + destacados (solo sin filtros).
+  // Productos (con filtros, paginados en el servidor) + destacados (sin filtros).
   const loadProductos = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const [prod, dest] = await Promise.all([
-        catalogoApi.get<CatalogoProducto[]>("/catalogo/productos", {
+        catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", {
           params: {
             search: search.trim() || undefined,
             categoria_id: catFilter ?? undefined,
             marca: marcaFilter ?? undefined,
+            page,
+            page_size: PAGE_SIZE,
           },
         }),
         sinFiltros
-          ? catalogoApi.get<CatalogoProducto[]>("/catalogo/productos", { params: { solo_destacados: true } })
-          : Promise.resolve({ data: [] as CatalogoProducto[] }),
+          ? catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", { params: { solo_destacados: true, page_size: 12 } })
+          : Promise.resolve({ data: { items: [] as CatalogoProducto[] } as Paginated<CatalogoProducto> }),
       ]);
-      setProductos(prod.data);
-      setDestacados(dest.data);
+      setProductos(prod.data.items);
+      setTotal(prod.data.total);
+      setTotalPages(Math.max(1, prod.data.total_pages));
+      setDestacados(dest.data.items);
     } catch { setError("No se pudo cargar el catálogo."); }
     finally { setLoading(false); }
-  }, [search, catFilter, marcaFilter, sinFiltros]);
+  }, [search, catFilter, marcaFilter, sinFiltros, page]);
 
   useEffect(() => { const t = setTimeout(loadProductos, 350); return () => clearTimeout(t); }, [loadProductos]);
 
@@ -103,41 +100,20 @@ export function CatalogoPage() {
   const handleMarca = (m: string | null) => { setMarcaFilter(m); setPage(1); };
   useEffect(() => { setPage(1); }, [search]);
 
-  // ===== Secciones temáticas (derivadas del catálogo, solo sin filtros) =====
+  // ===== Showcase de destacados (solo sin filtros) =====
   const disponibles = useMemo(() => productos.filter((p) => p.estado !== "agotado"), [productos]);
 
   const destacadosTop = useMemo(() => destacados.slice(0, 8), [destacados]);
 
-  // Nuevos ingresos: los de mayor id (más recientes).
+  // Fallback del showcase cuando aún no hay destacados marcados: los más
+  // recientes (mayor id) de la página actual.
   const nuevos = useMemo(
     () => [...disponibles].sort((a, b) => b.id - a.id).slice(0, 8),
     [disponibles],
   );
 
-  // Más vendidos: catálogo histórico (ids más antiguos) como proxy de popularidad.
-  const masVendidos = useMemo(
-    () => [...disponibles].sort((a, b) => a.id - b.id).slice(0, 8),
-    [disponibles],
-  );
-
-  // Equipamiento: cañas, carretes, líneas, anzuelos, accesorios.
-  const equipamiento = useMemo(
-    () => disponibles.filter((p) => matchCategoria(p, ["caña", "cana", "carrete", "reel", "línea", "linea", "tanza", "anzuelo", "equip", "acces"])).slice(0, 8),
-    [disponibles],
-  );
-
-  // Señuelos letales: señuelos, cebos, lures, jigs, poppers.
-  const senuelos = useMemo(
-    () => disponibles.filter((p) => matchCategoria(p, ["señuelo", "senuelo", "lure", "cebo", "jig", "popper", "spinner"])).slice(0, 8),
-    [disponibles],
-  );
-
-  // Paginación (cliente).
-  const totalPages = Math.max(1, Math.ceil(productos.length / PAGE_SIZE));
-  const pageItems = useMemo(
-    () => productos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [productos, page],
-  );
+  // Paginación: el servidor devuelve solo la página actual; `total` y
+  // `totalPages` vienen en la respuesta.
   const goToPage = (p: number) => { setPage(p); catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
 
   return (
@@ -152,7 +128,7 @@ export function CatalogoPage() {
       {sinFiltros && (
         <Hero
           onExplore={scrollToCatalogo}
-          productCount={productos.length}
+          productCount={total}
           brandCount={marcas.length}
         />
       )}
@@ -237,11 +213,11 @@ export function CatalogoPage() {
             ) : (
               <>
                 <p className="mb-5 text-sm text-ice-faint">
-                  <span className="font-bold text-ice">{productos.length}</span> producto{productos.length !== 1 ? "s" : ""}
+                  <span className="font-bold text-ice">{total}</span> producto{total !== 1 ? "s" : ""}
                   {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
                 </p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-                  {pageItems.map((p) => (
+                  {productos.map((p) => (
                     <ProductoCard key={p.id} producto={p} onAdd={carrito.addItem} onShowDetail={setDetalle} featured={p.destacado} />
                   ))}
                 </div>
