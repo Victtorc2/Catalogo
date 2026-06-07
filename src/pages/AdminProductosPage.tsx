@@ -6,6 +6,7 @@ import type { Paginated } from "@/types/producto";
 
 interface Producto {
   id: number; codigo: string; nombre: string; marca: string;
+  modelo: string | null;
   precio_venta: string | number; stock: number; estado: string;
   imagen_url: string | null; destacado: boolean;
   descripcion: string | null; ficha_tecnica: string | null;
@@ -202,7 +203,10 @@ function Row({ p, onUpload, onDelImg, onToggleDestacado, onEdit }: {
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium text-ink">{p.nombre}</p>
+        <p className="truncate font-medium text-ink">
+          {p.nombre}
+          {p.modelo ? <span className="ml-1.5 font-normal text-ink-soft">· {p.modelo}</span> : null}
+        </p>
         <p className="text-xs text-ink-faint">{p.marca} · {p.codigo} · S/ {precio.toFixed(2)} · Stock: {p.stock}</p>
         <div className="mt-1 flex items-center gap-2">
           <span className="flex items-center gap-1 text-xs">
