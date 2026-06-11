@@ -54,7 +54,7 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-abyss-deep/80 backdrop-blur-md animate-fade-in sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-abyss-deep/90 animate-fade-in sm:items-center"
       onClick={onClose}
     >
       <div
@@ -69,7 +69,7 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
           type="button"
           onClick={onClose}
           aria-label="Cerrar"
-          className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-steel-light/50 bg-abyss/70 text-ice-soft backdrop-blur-md transition-colors hover:bg-electric hover:text-white"
+          className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-steel-light/50 bg-abyss/90 text-ice-soft transition-colors hover:bg-electric hover:text-white"
         >
           <X size={20} />
         </button>
@@ -86,7 +86,7 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
                   className={`h-full w-full object-cover ${onImageClick ? "zoom-cursor" : ""}`}
                 />
                 {onImageClick && (
-                  <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border border-electric/30 bg-abyss/70 px-2.5 py-1 text-xs font-medium text-electric backdrop-blur-md">
+                  <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border border-electric/30 bg-abyss/90 px-2.5 py-1 text-xs font-medium text-electric">
                     <ZoomIn size={13} /> Ampliar
                   </span>
                 )}

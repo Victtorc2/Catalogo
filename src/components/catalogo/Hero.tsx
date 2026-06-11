@@ -18,7 +18,7 @@ export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
       <div className="absolute inset-0 -z-20 bg-gradient-to-b from-abyss-deep via-abyss to-steel" />
       <div className="absolute inset-0 -z-20 bg-[radial-gradient(120%_80%_at_70%_-10%,rgba(14,165,233,0.28),transparent_60%)]" />
       <div className="absolute inset-0 -z-20 bg-[radial-gradient(90%_70%_at_10%_110%,rgba(249,115,22,0.16),transparent_55%)]" />
-      <div className="tactical-grid tactical-grid-anim absolute inset-0 -z-10 opacity-70" />
+      <div className="tactical-grid absolute inset-0 -z-10 opacity-70" />
 
       {/* Olas decorativas inferiores */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-[radial-gradient(60%_100%_at_50%_100%,rgba(14,165,233,0.18),transparent_70%)]" />
@@ -26,7 +26,7 @@ export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
       <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24 lg:py-28">
         <div className="max-w-3xl">
           {/* Eyebrow */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-electric/30 bg-electric/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-electric backdrop-blur-sm animate-slide-up">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-electric/30 bg-electric/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-electric animate-slide-up">
             <Waves size={14} />
             Pesca deportiva · Edición Spinning
           </div>
@@ -65,7 +65,7 @@ export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
             <a
               href="#destacados"
               onClick={onExplore}
-              className="inline-flex items-center gap-2 rounded-2xl border border-electric/30 bg-electric/5 px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-electric backdrop-blur-sm transition-all hover:border-electric/60 hover:bg-electric/15"
+              className="inline-flex items-center gap-2 rounded-2xl border border-electric/30 bg-electric/5 px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-electric transition-all hover:border-electric/60 hover:bg-electric/15"
             >
               <Compass size={18} />
               Ver destacados
@@ -88,7 +88,7 @@ export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
 
       {/* Ancla flotante decorativa */}
       <div className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 lg:block">
-        <div className="animate-floaty rounded-3xl border border-electric/20 bg-steel/30 p-8 backdrop-blur-sm">
+        <div className="rounded-3xl border border-electric/20 bg-steel/30 p-8">
           <Anchor size={120} strokeWidth={1} className="text-electric/30" />
         </div>
       </div>

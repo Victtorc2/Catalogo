@@ -41,35 +41,17 @@
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes kenburns {
-  0% { transform: scale(1) translate(0, 0); }
-  100% { transform: scale(1.08) translate(-1%, -1%); }
-}
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
-}
-@keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-@keyframes glowPulse {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
 }
 @keyframes sweep {
   0% { transform: translateX(-120%) skewX(-18deg); }
   60%, 100% { transform: translateX(220%) skewX(-18deg); }
 }
-@keyframes gridDrift {
-  0% { background-position: 0 0; }
-  100% { background-position: 60px 60px; }
-}
 
 .animate-fade-in { animation: fadeIn 0.6s ease both; }
 .animate-slide-up { animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-kenburns { animation: kenburns 9s ease-out both; }
-.animate-floaty { animation: floaty 6s ease-in-out infinite; }
 
 /* ===================== Utilidades tácticas ===================== */
 
@@ -79,17 +61,14 @@
 
 .zoom-cursor { cursor: zoom-in; }
 
-/* Glassmorphism ligero sobre fondo oscuro */
+/* Superficies tipo "glass" pero SIN backdrop-filter (caro en móvil): se usan
+   fondos sólidos opacos que dan el mismo look oscuro sin recomponer capas. */
 .glass {
-  background: rgba(30, 41, 59, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: #16212e;
   border: 1px solid rgba(148, 163, 184, 0.14);
 }
 .glass-strong {
-  background: rgba(7, 27, 42, 0.78);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  background: #0a1722;
   border: 1px solid rgba(148, 163, 184, 0.16);
 }
 
@@ -119,7 +98,6 @@
     linear-gradient(90deg, rgba(14, 165, 233, 0.06) 1px, transparent 1px);
   background-size: 60px 60px;
 }
-.tactical-grid-anim { animation: gridDrift 22s linear infinite; }
 
 /* Halo de luz radial */
 .radial-glow {
@@ -152,5 +130,5 @@
 .dark-scroll::-webkit-scrollbar-track { background: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-kenburns, .animate-floaty, .tactical-grid-anim, .sweep-host:hover::after { animation: none !important; }
+  .sweep-host:hover::after { animation: none !important; }
 }

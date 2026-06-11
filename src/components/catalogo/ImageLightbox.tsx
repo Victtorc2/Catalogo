@@ -59,7 +59,7 @@ export function ImageLightbox({ src, alt, onClose }: ImageLightboxProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/90 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/95 animate-fade-in"
       onClick={onClose}
     >
       {/* Barra superior */}
@@ -68,7 +68,7 @@ export function ImageLightbox({ src, alt, onClose }: ImageLightboxProps) {
           type="button"
           onClick={(e) => { e.stopPropagation(); toggleZoom(); }}
           aria-label={zoomed ? "Alejar" : "Acercar"}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
         >
           {zoomed ? <ZoomOut size={20} /> : <ZoomIn size={20} />}
         </button>
@@ -76,7 +76,7 @@ export function ImageLightbox({ src, alt, onClose }: ImageLightboxProps) {
           type="button"
           onClick={onClose}
           aria-label="Cerrar"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
         >
           <X size={20} />
         </button>
@@ -101,7 +101,7 @@ export function ImageLightbox({ src, alt, onClose }: ImageLightboxProps) {
 
       {/* Pie con título */}
       {alt && (
-        <p className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-4 py-1.5 text-sm text-white backdrop-blur-sm">
+        <p className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white/20 px-4 py-1.5 text-sm text-white">
           {alt}
         </p>
       )}

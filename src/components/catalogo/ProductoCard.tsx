@@ -31,7 +31,7 @@ export function ProductoCard({ producto: p, onAdd, onShowDetail, featured, badge
 
   return (
     <div
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-steel/60 backdrop-blur-sm transition-all duration-300 ${
+      className={`group relative flex flex-col overflow-hidden rounded-2xl border bg-steel transition-all duration-300 ${
         agotado
           ? "border-steel-light/40 opacity-70"
           : "border-steel-light/50 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.9)] hover:-translate-y-1.5 hover:border-electric/50 hover:shadow-[0_24px_50px_-18px_rgba(14,165,233,0.45)]"
@@ -64,7 +64,7 @@ export function ProductoCard({ producto: p, onAdd, onShowDetail, featured, badge
             type="button"
             onClick={abrirDetalle}
             aria-label="Ver detalle"
-            className="absolute right-2 top-2 z-10 flex h-9 w-9 translate-y-1 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:translate-y-0 group-hover:opacity-100"
+            className="absolute right-2 top-2 z-10 flex h-9 w-9 translate-y-1 items-center justify-center rounded-xl border border-electric/30 bg-abyss/90 text-electric opacity-0 transition-all hover:bg-electric hover:text-white group-hover:translate-y-0 group-hover:opacity-100"
           >
             <Eye size={16} />
           </button>
@@ -77,7 +77,7 @@ export function ProductoCard({ producto: p, onAdd, onShowDetail, featured, badge
             {efectivo}
           </span>
         ) : (
-          <span className="absolute left-2 top-2 z-10 rounded-lg border border-steel-light/50 bg-abyss/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ice-soft backdrop-blur-md">
+          <span className="absolute left-2 top-2 z-10 rounded-lg border border-steel-light/50 bg-abyss/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ice-soft">
             {p.categoria}
           </span>
         )}
@@ -89,7 +89,7 @@ export function ProductoCard({ producto: p, onAdd, onShowDetail, featured, badge
         )}
 
         {agotado && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-abyss/60 backdrop-blur-[2px]">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-abyss/80">
             <span className="rounded-lg border border-danger/40 bg-abyss/80 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-danger">
               No disponible
             </span>

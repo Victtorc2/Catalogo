@@ -72,7 +72,7 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
                   type="button"
                   onClick={() => onImageClick(url, b.titulo)}
                   aria-label="Ampliar imagen"
-                  className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 shadow-sm backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
+                  className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-electric/30 bg-abyss/90 text-electric opacity-0 shadow-sm transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
                 >
                   <Maximize2 size={17} />
                 </button>
@@ -94,13 +94,13 @@ export function BannerCarousel({ banners, onImageClick }: BannerCarouselProps) {
         <>
           <button
             type="button" onClick={() => goTo(current - 1)} aria-label="Anterior"
-            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 shadow-md backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
+            className="absolute left-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-electric/30 bg-abyss/90 text-electric opacity-0 shadow-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
           >
             <ChevronLeft size={22} />
           </button>
           <button
             type="button" onClick={() => goTo(current + 1)} aria-label="Siguiente"
-            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-electric/30 bg-abyss/70 text-electric opacity-0 shadow-md backdrop-blur-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
+            className="absolute right-3 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl border border-electric/30 bg-abyss/90 text-electric opacity-0 shadow-md transition-all hover:bg-electric hover:text-white group-hover:opacity-100"
           >
             <ChevronRight size={22} />
           </button>

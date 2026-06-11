@@ -8,7 +8,7 @@ function toNum(v: string | number) { return typeof v === "string" ? parseFloat(v
 export function CarritoDrawer({ open, onClose, carrito }: { open: boolean; onClose: () => void; carrito: Cart }) {
   return (
     <>
-      {open && <div className="fixed inset-0 z-50 bg-abyss-deep/70 backdrop-blur-sm" onClick={onClose} />}
+      {open && <div className="fixed inset-0 z-50 bg-abyss-deep/80" onClick={onClose} />}
       <div className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-steel-light/40 bg-steel shadow-[0_0_90px_-10px_rgba(0,0,0,0.9)] transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex items-center justify-between border-b border-steel-light/40 px-5 py-4">
           <div className="flex items-center gap-2">

@@ -247,7 +247,7 @@ function InfoModal({ producto, onClose, onSave }: {
   const guardar = async () => { setSaving(true); await onSave(producto.id, descripcion.trim(), ficha.trim()); setSaving(false); };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 backdrop-blur-sm sm:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/60 sm:items-center" onClick={onClose}>
       <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <div>
