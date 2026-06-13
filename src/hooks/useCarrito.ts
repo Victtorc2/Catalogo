@@ -18,12 +18,13 @@ export function useCarrito() {
 
   useEffect(() => { localStorage.setItem(KEY, JSON.stringify(items)); }, [items]);
 
-  const addItem = useCallback((p: CatalogoProducto) => {
+  const addItem = useCallback((p: CatalogoProducto, cantidad: number = 1) => {
+    const qty = Math.max(1, Math.floor(cantidad));
     setItems(prev => {
       const ex = prev.find(it => it.producto.id === p.id);
       return ex
-        ? prev.map(it => it.producto.id === p.id ? { ...it, cantidad: it.cantidad + 1 } : it)
-        : [...prev, { producto: p, cantidad: 1 }];
+        ? prev.map(it => it.producto.id === p.id ? { ...it, cantidad: it.cantidad + qty } : it)
+        : [...prev, { producto: p, cantidad: qty }];
     });
   }, []);
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp } from "lucide-react";
 import { catalogoApi } from "@/api/client";
 import { useCarrito } from "@/hooks/useCarrito";
 import { Header } from "@/components/layout/Header";
@@ -21,6 +22,15 @@ import type { Banner } from "@/types/banner";
 
 const PAGE_SIZE = 12;
 
+/** Opciones de ordenamiento (coinciden con el backend). */
+const ORDEN_OPCIONES = [
+  { value: "destacados", label: "Recomendado" },
+  { value: "precio_asc", label: "Precio: menor a mayor" },
+  { value: "precio_desc", label: "Precio: mayor a menor" },
+  { value: "nombre", label: "Nombre (A-Z)" },
+  { value: "reciente", label: "Novedades" },
+];
+
 export function CatalogoPage() {
   const carrito = useCarrito();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -37,12 +47,29 @@ export function CatalogoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [catFilter, setCatFilter] = useState<number | null>(null);
-  const [marcaFilter, setMarcaFilter] = useState<string | null>(null);
-  const [modeloFilter, setModeloFilter] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
+  // ===== Estado de navegación en la URL (links compartibles + botón "atrás") =====
+  const [searchParams, setSearchParams] = useSearchParams();
+  const catFilter = searchParams.get("cat") ? Number(searchParams.get("cat")) : null;
+  const marcaFilter = searchParams.get("marca");
+  const modeloFilter = searchParams.get("modelo");
+  const orden = searchParams.get("orden") || "destacados";
+  const page = Math.max(1, Number(searchParams.get("page") || "1") || 1);
+  const qParam = searchParams.get("q") || "";
+
+  // Texto de búsqueda: estado local (para que escribir sea fluido) + debounce.
+  const [search, setSearch] = useState(qParam);
+  const [debouncedSearch, setDebouncedSearch] = useState(qParam);
+
+  const updateParams = useCallback(
+    (mutate: (p: URLSearchParams) => void, opts?: { replace?: boolean }) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        mutate(next);
+        return next;
+      }, { replace: opts?.replace });
+    },
+    [setSearchParams],
+  );
 
   // Vista de MODELOS: tras elegir una marca (sin buscar) y antes de elegir un
   // modelo, se muestran los modelos de esa marca en lugar de los productos.
@@ -52,17 +79,53 @@ export function CatalogoPage() {
   // (o aún se están cargando). Si no tiene ninguno, caemos a sus productos.
   const mostrarModelos = enVistaModelos && (modelosLoading || modelos.length > 0);
 
-  // La búsqueda de texto se aplica con un pequeño retraso (mientras se escribe);
-  // los filtros de categoría/marca y la paginación se aplican al instante.
+  // La búsqueda de texto se aplica con un pequeño retraso (mientras se escribe).
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 350);
     return () => clearTimeout(t);
   }, [search]);
 
+  // Refleja la búsqueda (debounced) en la URL y reinicia página/modelo. El
+  // guard evita reescrituras en el montaje y bucles.
+  useEffect(() => {
+    if (debouncedSearch === qParam) return;
+    updateParams((p) => {
+      if (debouncedSearch.trim()) p.set("q", debouncedSearch.trim());
+      else p.delete("q");
+      p.delete("page");
+      p.delete("modelo");
+    }, { replace: true });
+  }, [debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Imagen ampliada (lightbox) y producto en detalle.
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
   const [detalle, setDetalle] = useState<CatalogoProducto | null>(null);
   const openLightbox = useCallback((src: string, alt: string) => setLightbox({ src, alt }), []);
+
+  // Toast de confirmación al agregar al carrito.
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toastTimer = useRef<number | null>(null);
+  const showToast = useCallback((msg: string) => {
+    setToastMsg(msg);
+    if (toastTimer.current) window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToastMsg(null), 2200);
+  }, []);
+  const handleAdd = useCallback(
+    (p: CatalogoProducto, cantidad: number = 1) => {
+      carrito.addItem(p, cantidad);
+      showToast(cantidad > 1 ? `${cantidad}× ${p.nombre} agregado` : `${p.nombre} agregado`);
+    },
+    [carrito, showToast],
+  );
+
+  // Botón "volver arriba": aparece tras desplazarse hacia abajo.
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowTop(window.scrollY > 600);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
   const catalogoRef = useRef<HTMLDivElement>(null);
   const scrollToCatalogo = () => catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -85,6 +148,7 @@ export function CatalogoPage() {
             categoria_id: catFilter ?? undefined,
             marca: marcaFilter ?? undefined,
             modelo: modeloFilter ?? undefined,
+            orden: orden !== "destacados" ? orden : undefined,
             page,
             page_size: PAGE_SIZE,
           },
@@ -99,7 +163,7 @@ export function CatalogoPage() {
       setDestacados(dest.data.items);
     } catch { setError("No se pudo cargar el catálogo."); }
     finally { setLoading(false); }
-  }, [debouncedSearch, catFilter, marcaFilter, modeloFilter, sinFiltros, page, mostrarModelos]);
+  }, [debouncedSearch, catFilter, marcaFilter, modeloFilter, orden, sinFiltros, page, mostrarModelos]);
 
   useEffect(() => { void loadProductos(); }, [loadProductos]);
 
@@ -131,28 +195,57 @@ export function CatalogoPage() {
       .catch(() => setMarcas([]));
   }, [catFilter]);
 
-  // Al cambiar categoría: resetear marca (puede no existir en la nueva),
-  // modelo y página.
-  const handleCategoria = (id: number | null) => {
-    setCatFilter(id);
-    setMarcaFilter(null);
-    setModeloFilter(null);
-    setPage(1);
-  };
+  // Al cambiar categoría: resetear marca (puede no existir en la nueva), modelo
+  // y página. Cada handler escribe en la URL (estado compartible / atrás).
+  const handleCategoria = (id: number | null) =>
+    updateParams((p) => {
+      if (id == null) p.delete("cat"); else p.set("cat", String(id));
+      p.delete("marca"); p.delete("modelo"); p.delete("page");
+    });
   // Al cambiar marca: resetear el modelo (se vuelve a la vista de modelos).
-  const handleMarca = (m: string | null) => { setMarcaFilter(m); setModeloFilter(null); setPage(1); };
-  const handleModelo = (m: string | null) => { setModeloFilter(m); setPage(1); };
-  // Buscar texto sale de la navegación por modelo y reinicia la página.
-  useEffect(() => { setModeloFilter(null); setPage(1); }, [debouncedSearch]);
+  const handleMarca = (m: string | null) =>
+    updateParams((p) => {
+      if (!m) p.delete("marca"); else p.set("marca", m);
+      p.delete("modelo"); p.delete("page");
+    });
+  const handleModelo = (m: string | null) =>
+    updateParams((p) => {
+      if (!m) p.delete("modelo"); else p.set("modelo", m);
+      p.delete("page");
+    });
+  const handleOrden = (o: string) =>
+    updateParams((p) => {
+      if (o === "destacados") p.delete("orden"); else p.set("orden", o);
+      p.delete("page");
+    });
 
   // ===== Showcase de destacados: SOLO los productos marcados como destacados.
-  // Sin fallback: si no hay ninguno marcado, la sección no se muestra (antes
-  // mostraba "los más recientes", que parecían destacados sin serlo).
   const destacadosTop = useMemo(() => destacados.slice(0, 8), [destacados]);
 
-  // Paginación: el servidor devuelve solo la página actual; `total` y
-  // `totalPages` vienen en la respuesta.
-  const goToPage = (p: number) => { setPage(p); catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); };
+  // Paginación: el servidor devuelve solo la página actual.
+  const goToPage = (p: number) => {
+    updateParams((prev) => prev.set("page", String(p)));
+    catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Selector de orden reutilizado en las cabeceras de listado.
+  const ordenSelect = (
+    <label className="flex shrink-0 items-center gap-1.5 text-xs text-ice-faint">
+      <ArrowDownUp size={14} className="text-electric" />
+      <select
+        value={orden}
+        onChange={(e) => handleOrden(e.target.value)}
+        className="rounded-lg border border-steel-light/50 bg-steel/60 px-2.5 py-1.5 text-xs font-semibold text-ice-soft focus:border-electric/60 focus:outline-none"
+        aria-label="Ordenar productos"
+      >
+        {ORDEN_OPCIONES.map((o) => (
+          <option key={o.value} value={o.value} className="bg-steel text-ice">
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-abyss text-ice">
@@ -189,7 +282,7 @@ export function CatalogoPage() {
               subtitle="Selección élite del arsenal"
               productos={destacadosTop}
               badge="TOP"
-              onAdd={carrito.addItem}
+              onAdd={handleAdd}
               onShowDetail={setDetalle}
             />
           </div>
@@ -318,13 +411,16 @@ export function CatalogoPage() {
                   </div>
                 ) : (
                   <>
-                    <p className="mb-5 text-sm text-ice-faint">
-                      <span className="font-bold text-ice">{total}</span> {modeloFilter ? "color" : "producto"}{total !== 1 ? (modeloFilter ? "es" : "s") : ""}
-                      {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
-                    </p>
+                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm text-ice-faint">
+                        <span className="font-bold text-ice">{total}</span> {modeloFilter ? "color" : "producto"}{total !== 1 ? (modeloFilter ? "es" : "s") : ""}
+                        {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
+                      </p>
+                      {ordenSelect}
+                    </div>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
                       {productos.map((p) => (
-                        <ProductoCard key={p.id} producto={p} onAdd={carrito.addItem} onShowDetail={setDetalle} featured={p.destacado} />
+                        <ProductoCard key={p.id} producto={p} onAdd={handleAdd} onShowDetail={setDetalle} featured={p.destacado} />
                       ))}
                     </div>
                     <Pagination page={page} totalPages={totalPages} onChange={goToPage} />
@@ -342,6 +438,20 @@ export function CatalogoPage() {
 
       <CarritoDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} carrito={carrito} />
 
+      {/* Volver arriba (se apila sobre el botón "Pedir" cuando este está visible) */}
+      {showTop && (
+        <button
+          type="button"
+          onClick={scrollToTop}
+          aria-label="Volver arriba"
+          className={`fixed right-6 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-electric/40 bg-abyss/90 text-electric shadow-[0_10px_28px_-10px_rgba(14,165,233,0.8)] transition-all hover:bg-electric hover:text-white active:scale-95 ${
+            !carrito.isEmpty && !drawerOpen ? "bottom-24" : "bottom-6"
+          }`}
+        >
+          <ArrowUp size={20} />
+        </button>
+      )}
+
       {!carrito.isEmpty && !drawerOpen && (
         <button type="button" onClick={() => setDrawerOpen(true)}
           className="fixed bottom-6 right-6 z-30 flex items-center gap-2 rounded-2xl bg-[#25d366] px-5 py-3.5 font-display text-sm font-bold text-white shadow-[0_18px_40px_-12px_rgba(37,211,102,0.7)] transition-all hover:-translate-y-0.5 active:scale-95">
@@ -349,11 +459,21 @@ export function CatalogoPage() {
         </button>
       )}
 
+      {/* Toast de confirmación al agregar al carrito */}
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-electric/40 bg-abyss/95 px-4 py-3 text-sm font-semibold text-ice shadow-[0_18px_40px_-12px_rgba(14,165,233,0.6)] animate-slide-up">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-white">
+            <Check size={13} strokeWidth={3} />
+          </span>
+          {toastMsg}
+        </div>
+      )}
+
       {/* Detalle del producto */}
       <ProductDetailModal
         producto={detalle}
         onClose={() => setDetalle(null)}
-        onAdd={carrito.addItem}
+        onAdd={handleAdd}
         onImageClick={openLightbox}
       />
 

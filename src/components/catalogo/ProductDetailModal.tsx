@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X, Plus, Package, ZoomIn, ClipboardList, FileText, Palette, ChevronDown } from "lucide-react";
+import { X, Plus, Minus, Package, ZoomIn, ClipboardList, FileText, Palette, ChevronDown } from "lucide-react";
 import { UPLOADS_BASE } from "@/api/client";
 import type { CatalogoProducto } from "@/types/producto";
 
 interface ProductDetailModalProps {
   producto: CatalogoProducto | null;
   onClose: () => void;
-  onAdd: (p: CatalogoProducto) => void;
+  onAdd: (p: CatalogoProducto, cantidad?: number) => void;
   onImageClick?: (url: string, alt: string) => void;
 }
 
@@ -38,6 +38,7 @@ function parseFicha(texto: string): { etiqueta: string; valor: string }[] {
 export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: ProductDetailModalProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hayMas, setHayMas] = useState(false);
+  const [cantidad, setCantidad] = useState(1);
 
   // Comprueba si queda contenido por debajo para mostrar la flecha.
   const actualizarFlecha = useCallback(() => {
@@ -55,7 +56,8 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
     if (producto) {
       window.addEventListener("keydown", onKey);
       document.body.style.overflow = "hidden";
-      // Resetea el scroll y recalcula la flecha al abrir un producto.
+      // Resetea el scroll, la cantidad y recalcula la flecha al abrir.
+      setCantidad(1);
       const el = scrollRef.current;
       if (el) el.scrollTop = 0;
       requestAnimationFrame(actualizarFlecha);
@@ -212,15 +214,37 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
             </button>
           )}
 
-          {/* Agregar al pedido (anclado abajo, siempre visible) */}
+          {/* Cantidad + Agregar al pedido (anclado abajo, siempre visible) */}
           {!agotado && (
-            <div className="border-t border-steel-light/40 bg-steel/95 p-4">
+            <div className="flex items-center gap-3 border-t border-steel-light/40 bg-steel/95 p-4">
+              <div className="flex shrink-0 items-center gap-1 rounded-xl border border-steel-light/50 bg-abyss/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => setCantidad((q) => Math.max(1, q - 1))}
+                  aria-label="Quitar uno"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-ice-soft transition-colors hover:bg-steel hover:text-ice disabled:opacity-40"
+                  disabled={cantidad <= 1}
+                >
+                  <Minus size={16} />
+                </button>
+                <span className="w-7 text-center font-display text-base font-bold tabular-nums text-ice">
+                  {cantidad}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCantidad((q) => q + 1)}
+                  aria-label="Agregar uno"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg text-ice-soft transition-colors hover:bg-steel hover:text-ice"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => { onAdd(p); onClose(); }}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-strike to-strike-deep px-6 py-3.5 font-display text-base font-bold text-white shadow-[0_18px_40px_-14px_rgba(249,115,22,0.8)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+                onClick={() => { onAdd(p, cantidad); onClose(); }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-strike to-strike-deep px-4 py-3.5 font-display text-base font-bold text-white shadow-[0_18px_40px_-14px_rgba(249,115,22,0.8)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
               >
-                <Plus size={20} /> Agregar al pedido
+                <Plus size={20} /> Agregar{cantidad > 1 ? ` ${cantidad}` : ""} al pedido
               </button>
             </div>
           )}
