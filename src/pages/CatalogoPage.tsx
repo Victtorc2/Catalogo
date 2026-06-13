@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp } from "lucide-react";
 import { catalogoApi } from "@/api/client";
@@ -219,6 +219,23 @@ export function CatalogoPage() {
       p.delete("page");
     });
 
+  // Retroceder un nivel de filtro: marca → categoría → búsqueda.
+  const goBack = () => {
+    if (marcaFilter) { handleMarca(null); return; }
+    if (catFilter != null) { handleCategoria(null); return; }
+    if (debouncedSearch.trim()) setSearch("");
+  };
+
+  // Al cambiar de filtro/búsqueda, volver al inicio de la página. Evita que al
+  // filtrar (se ocultan Hero/banners/destacados) el navegador deje la vista
+  // pegada al footer. useLayoutEffect corrige antes de pintar (sin salto visible).
+  const firstFilterRender = useRef(true);
+  const filterSig = `${catFilter}|${marcaFilter}|${modeloFilter}|${debouncedSearch.trim()}`;
+  useLayoutEffect(() => {
+    if (firstFilterRender.current) { firstFilterRender.current = false; return; }
+    window.scrollTo({ top: 0 });
+  }, [filterSig]);
+
   // ===== Showcase de destacados: SOLO los productos marcados como destacados.
   const destacadosTop = useMemo(() => destacados.slice(0, 8), [destacados]);
 
@@ -290,6 +307,16 @@ export function CatalogoPage() {
 
         {/* ===== Filtros + catálogo completo ===== */}
         <div ref={catalogoRef} className={sinFiltros ? "mt-16 scroll-mt-20" : "scroll-mt-20"}>
+          {/* Flecha para retroceder un nivel de filtro (la vista de colores tiene la suya). */}
+          {!sinFiltros && !modeloFilter && (
+            <button
+              type="button"
+              onClick={goBack}
+              className="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-steel-light/50 bg-steel/40 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ice-soft transition-colors hover:border-electric/50 hover:text-electric"
+            >
+              <ChevronLeft size={15} /> Volver
+            </button>
+          )}
           {(categorias.length > 0 || marcas.length > 0) && (
             <section className="mb-6 flex flex-wrap items-center gap-3">
               {categorias.length > 0 && (
