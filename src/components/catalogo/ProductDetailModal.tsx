@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { X, Plus, Package, ZoomIn, ClipboardList, FileText, Palette } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { X, Plus, Package, ZoomIn, ClipboardList, FileText, Palette, ChevronDown } from "lucide-react";
 import { UPLOADS_BASE } from "@/api/client";
 import type { CatalogoProducto } from "@/types/producto";
 
@@ -29,20 +29,42 @@ function parseFicha(texto: string): { etiqueta: string; valor: string }[] {
 
 /**
  * Detalle del producto: imagen ampliable, descripción y ficha técnica.
+ *
+ * El modal mantiene un tamaño fijo: la imagen y el botón de pedido quedan
+ * anclados, y la información larga (descripción + ficha) se desplaza dentro de
+ * un área con scroll. Una flecha indica (y permite) bajar cuando hay más texto.
  * Cierra con la X, Escape o clic en el fondo.
  */
 export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: ProductDetailModalProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hayMas, setHayMas] = useState(false);
+
+  // Comprueba si queda contenido por debajo para mostrar la flecha.
+  const actualizarFlecha = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setHayMas(el.scrollHeight - el.scrollTop - el.clientHeight > 8);
+  }, []);
+
+  const bajar = () => {
+    scrollRef.current?.scrollBy({ top: 240, behavior: "smooth" });
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     if (producto) {
       window.addEventListener("keydown", onKey);
       document.body.style.overflow = "hidden";
+      // Resetea el scroll y recalcula la flecha al abrir un producto.
+      const el = scrollRef.current;
+      if (el) el.scrollTop = 0;
+      requestAnimationFrame(actualizarFlecha);
     }
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [producto, onClose]);
+  }, [producto, onClose, actualizarFlecha]);
 
   if (!producto) return null;
 
@@ -58,53 +80,57 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
       onClick={onClose}
     >
       <div
-        className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-steel-light/40 bg-steel shadow-[0_40px_90px_-30px_rgba(0,0,0,0.95)] animate-slide-up sm:rounded-3xl"
+        className="relative flex h-[88vh] max-h-[600px] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-steel-light/40 bg-steel shadow-[0_40px_90px_-30px_rgba(0,0,0,0.95)] animate-slide-up sm:flex-row sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Glow superior */}
-        <div className="absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-electric/60 to-transparent" />
+        <div className="absolute inset-x-0 top-0 z-20 h-px bg-gradient-to-r from-transparent via-electric/60 to-transparent" />
 
         {/* Cerrar */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Cerrar"
-          className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-xl border border-steel-light/50 bg-abyss/90 text-ice-soft transition-colors hover:bg-electric hover:text-white"
+          className="absolute right-3 top-3 z-30 flex h-9 w-9 items-center justify-center rounded-xl border border-steel-light/50 bg-abyss/90 text-ice-soft transition-colors hover:bg-electric hover:text-white"
         >
           <X size={20} />
         </button>
 
-        <div className="flex flex-col overflow-y-auto dark-scroll sm:flex-row">
-          {/* Imagen */}
-          <div className="relative aspect-square w-full shrink-0 bg-abyss-deep sm:w-1/2">
-            {tieneImg ? (
-              <>
-                <img
-                  src={imgUrl}
-                  alt={p.nombre}
-                  onClick={() => onImageClick?.(imgUrl, p.nombre)}
-                  className={`h-full w-full object-cover ${onImageClick ? "zoom-cursor" : ""}`}
-                />
-                {onImageClick && (
-                  <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border border-electric/30 bg-abyss/90 px-2.5 py-1 text-xs font-medium text-electric">
-                    <ZoomIn size={13} /> Ampliar
-                  </span>
-                )}
-              </>
-            ) : (
-              <div className="flex h-full items-center justify-center text-steel-light">
-                <Package size={64} strokeWidth={1} />
-              </div>
-            )}
-            {p.destacado && (
-              <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-strike to-strike-deep px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-[0_8px_20px_-8px_rgba(249,115,22,0.9)]">
-                Destacado
-              </span>
-            )}
-          </div>
+        {/* Imagen (anclada: no se desplaza con el texto) */}
+        <div className="relative aspect-square w-full shrink-0 bg-abyss-deep sm:aspect-auto sm:h-full sm:w-1/2">
+          {tieneImg ? (
+            <>
+              <img
+                src={imgUrl}
+                alt={p.nombre}
+                onClick={() => onImageClick?.(imgUrl, p.nombre)}
+                className={`h-full w-full object-cover ${onImageClick ? "zoom-cursor" : ""}`}
+              />
+              {onImageClick && (
+                <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-lg border border-electric/30 bg-abyss/90 px-2.5 py-1 text-xs font-medium text-electric">
+                  <ZoomIn size={13} /> Ampliar
+                </span>
+              )}
+            </>
+          ) : (
+            <div className="flex h-full items-center justify-center text-steel-light">
+              <Package size={64} strokeWidth={1} />
+            </div>
+          )}
+          {p.destacado && (
+            <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-strike to-strike-deep px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white shadow-[0_8px_20px_-8px_rgba(249,115,22,0.9)]">
+              Destacado
+            </span>
+          )}
+        </div>
 
-          {/* Info */}
-          <div className="flex flex-1 flex-col gap-4 p-5 sm:p-6">
+        {/* Columna de información (tamaño fijo; el texto largo hace scroll aquí) */}
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <div
+            ref={scrollRef}
+            onScroll={actualizarFlecha}
+            className="flex flex-1 flex-col gap-4 overflow-y-auto dark-scroll p-5 sm:p-6"
+          >
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-electric">{p.categoria}</p>
               <h2 className="mt-1 font-display text-2xl font-extrabold leading-tight text-ice">{p.nombre}</h2>
@@ -172,18 +198,32 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
             {!p.descripcion && specs.length === 0 && (
               <p className="text-sm text-ice-faint">Este producto aún no tiene descripción detallada.</p>
             )}
+          </div>
 
-            {/* Agregar al pedido */}
-            {!agotado && (
+          {/* Flecha: indica que hay más información hacia abajo */}
+          {hayMas && (
+            <button
+              type="button"
+              onClick={bajar}
+              aria-label="Ver más información"
+              className={`pointer-events-auto absolute left-1/2 z-10 flex h-9 w-9 -translate-x-1/2 animate-bounce items-center justify-center rounded-full border border-electric/40 bg-abyss/90 text-electric shadow-[0_8px_20px_-6px_rgba(14,165,233,0.7)] transition-colors hover:bg-electric hover:text-white ${agotado ? "bottom-3" : "bottom-[76px]"}`}
+            >
+              <ChevronDown size={18} />
+            </button>
+          )}
+
+          {/* Agregar al pedido (anclado abajo, siempre visible) */}
+          {!agotado && (
+            <div className="border-t border-steel-light/40 bg-steel/95 p-4">
               <button
                 type="button"
                 onClick={() => { onAdd(p); onClose(); }}
-                className="mt-auto flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-strike to-strike-deep px-6 py-3.5 font-display text-base font-bold text-white shadow-[0_18px_40px_-14px_rgba(249,115,22,0.8)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-strike to-strike-deep px-6 py-3.5 font-display text-base font-bold text-white shadow-[0_18px_40px_-14px_rgba(249,115,22,0.8)] transition-all hover:-translate-y-0.5 active:scale-[0.98]"
               >
                 <Plus size={20} /> Agregar al pedido
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

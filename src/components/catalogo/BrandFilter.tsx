@@ -18,7 +18,7 @@ export function BrandFilter({ marcas, selected, onChange }: BrandFilterProps) {
     }`;
 
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+    <div className="flex flex-wrap items-center gap-2">
       <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-ice-faint">Marca:</span>
       <button type="button" onClick={() => onChange(null)} className={chip(selected === null)}>
         Todas
