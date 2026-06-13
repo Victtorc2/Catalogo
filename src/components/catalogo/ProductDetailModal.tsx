@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { X, Plus, Package, ZoomIn, ClipboardList, FileText } from "lucide-react";
+import { X, Plus, Package, ZoomIn, ClipboardList, FileText, Palette } from "lucide-react";
 import { UPLOADS_BASE } from "@/api/client";
 import type { CatalogoProducto } from "@/types/producto";
 
@@ -111,6 +111,11 @@ export function ProductDetailModal({ producto, onClose, onAdd, onImageClick }: P
               <p className="mt-1 text-sm uppercase tracking-wide text-ice-faint">
                 {p.marca}{p.modelo ? ` · ${p.modelo}` : ""}
               </p>
+              {p.color && (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-electric/30 bg-electric/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-electric">
+                  <Palette size={13} /> {p.color}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-3">

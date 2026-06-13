@@ -1,4 +1,4 @@
-import { Plus, Package, Eye, Flame } from "lucide-react";
+import { Plus, Package, Eye, Flame, Palette } from "lucide-react";
 import { UPLOADS_BASE } from "@/api/client";
 import type { CatalogoProducto } from "@/types/producto";
 
@@ -107,6 +107,11 @@ export function ProductoCard({ producto: p, onAdd, onShowDetail, featured, badge
         <p className="text-xs font-medium uppercase tracking-wide text-ice-faint">
           {p.marca}{p.modelo ? ` · ${p.modelo}` : ""}
         </p>
+        {p.color && (
+          <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-md border border-electric/25 bg-electric/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-electric">
+            <Palette size={10} /> {p.color}
+          </span>
+        )}
         <div className="mt-auto flex items-end justify-between pt-3">
           <div>
             <span className="block text-[10px] font-medium uppercase tracking-wider text-ice-faint">Precio</span>

@@ -40,9 +40,14 @@ export function useCarrito() {
 
   const whatsappUrl = useCallback(() => {
     if (!items.length) return "";
-    const lines = items.map(it =>
-      `• ${it.cantidad}x ${it.producto.nombre} — S/ ${toNum(it.producto.precio_venta).toFixed(2)} c/u`
-    );
+    const lines = items.map(it => {
+      const { nombre, modelo, color, precio_venta } = it.producto;
+      // Detalle del modelo/color para que el pedido sea inequívoco (un mismo
+      // nombre puede tener varios modelos y colores).
+      const detalle = [modelo, color].filter(Boolean).join(" / ");
+      const titulo = detalle ? `${nombre} (${detalle})` : nombre;
+      return `• ${it.cantidad}x ${titulo} — S/ ${toNum(precio_venta).toFixed(2)} c/u`;
+    });
     const msg = encodeURIComponent(
       `Hola *${STORE_NAME}*, quiero pedir:\n\n${lines.join("\n")}\n\n*Total aprox: S/ ${totalPrice.toFixed(2)}*\n\n¡Gracias!`
     );

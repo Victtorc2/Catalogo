@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Fish, MessageCircle, Flame, LayoutGrid } from "lucide-react";
+import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft } from "lucide-react";
 import { catalogoApi } from "@/api/client";
 import { useCarrito } from "@/hooks/useCarrito";
 import { Header } from "@/components/layout/Header";
@@ -8,6 +8,7 @@ import { BannerCarousel } from "@/components/catalogo/BannerCarousel";
 import { CategoryFilter } from "@/components/catalogo/CategoryFilter";
 import { BrandFilter } from "@/components/catalogo/BrandFilter";
 import { ProductoCard } from "@/components/catalogo/ProductoCard";
+import { ModeloCard } from "@/components/catalogo/ModeloCard";
 import { ProductSection } from "@/components/catalogo/ProductSection";
 import { Pagination } from "@/components/catalogo/Pagination";
 import { CarritoDrawer } from "@/components/catalogo/CarritoDrawer";
@@ -15,7 +16,7 @@ import { ImageLightbox } from "@/components/catalogo/ImageLightbox";
 import { ProductDetailModal } from "@/components/catalogo/ProductDetailModal";
 import { FloatingSocial } from "@/components/catalogo/FloatingSocial";
 import { Footer } from "@/components/catalogo/Footer";
-import type { CatalogoProducto, CatalogoCategoria, CatalogoMarca, Paginated } from "@/types/producto";
+import type { CatalogoProducto, CatalogoCategoria, CatalogoMarca, CatalogoModelo, Paginated } from "@/types/producto";
 import type { Banner } from "@/types/banner";
 
 const PAGE_SIZE = 12;
@@ -30,6 +31,8 @@ export function CatalogoPage() {
   const [destacados, setDestacados] = useState<CatalogoProducto[]>([]);
   const [categorias, setCategorias] = useState<CatalogoCategoria[]>([]);
   const [marcas, setMarcas] = useState<CatalogoMarca[]>([]);
+  const [modelos, setModelos] = useState<CatalogoModelo[]>([]);
+  const [modelosLoading, setModelosLoading] = useState(false);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +41,16 @@ export function CatalogoPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [catFilter, setCatFilter] = useState<number | null>(null);
   const [marcaFilter, setMarcaFilter] = useState<string | null>(null);
+  const [modeloFilter, setModeloFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+
+  // Vista de MODELOS: tras elegir una marca (sin buscar) y antes de elegir un
+  // modelo, se muestran los modelos de esa marca en lugar de los productos.
+  const enVistaModelos =
+    marcaFilter !== null && modeloFilter === null && !debouncedSearch.trim();
+  // Solo mostramos la grilla de modelos si la marca realmente tiene modelos
+  // (o aún se están cargando). Si no tiene ninguno, caemos a sus productos.
+  const mostrarModelos = enVistaModelos && (modelosLoading || modelos.length > 0);
 
   // La búsqueda de texto se aplica con un pequeño retraso (mientras se escribe);
   // los filtros de categoría/marca y la paginación se aplican al instante.
@@ -59,6 +71,11 @@ export function CatalogoPage() {
 
   // Productos (con filtros, paginados en el servidor) + destacados (sin filtros).
   const loadProductos = useCallback(async () => {
+    // En la vista de modelos no se cargan productos: se muestran los modelos.
+    if (mostrarModelos) {
+      setProductos([]); setTotal(0); setTotalPages(1); setLoading(false);
+      return;
+    }
     setLoading(true); setError(null);
     try {
       const [prod, dest] = await Promise.all([
@@ -67,6 +84,7 @@ export function CatalogoPage() {
             search: debouncedSearch.trim() || undefined,
             categoria_id: catFilter ?? undefined,
             marca: marcaFilter ?? undefined,
+            modelo: modeloFilter ?? undefined,
             page,
             page_size: PAGE_SIZE,
           },
@@ -81,9 +99,23 @@ export function CatalogoPage() {
       setDestacados(dest.data.items);
     } catch { setError("No se pudo cargar el catálogo."); }
     finally { setLoading(false); }
-  }, [debouncedSearch, catFilter, marcaFilter, sinFiltros, page]);
+  }, [debouncedSearch, catFilter, marcaFilter, modeloFilter, sinFiltros, page, mostrarModelos]);
 
   useEffect(() => { void loadProductos(); }, [loadProductos]);
+
+  // Modelos de la marca seleccionada (paso intermedio Marca → Modelo). Solo se
+  // cargan cuando hay marca y no hay búsqueda de texto activa.
+  useEffect(() => {
+    if (marcaFilter === null || debouncedSearch.trim()) { setModelos([]); return; }
+    setModelosLoading(true);
+    catalogoApi
+      .get<CatalogoModelo[]>("/catalogo/modelos", {
+        params: { marca: marcaFilter, categoria_id: catFilter ?? undefined },
+      })
+      .then((r) => setModelos(r.data))
+      .catch(() => setModelos([]))
+      .finally(() => setModelosLoading(false));
+  }, [marcaFilter, catFilter, debouncedSearch]);
 
   // Categorías y banners (una vez).
   useEffect(() => {
@@ -99,14 +131,19 @@ export function CatalogoPage() {
       .catch(() => setMarcas([]));
   }, [catFilter]);
 
-  // Al cambiar categoría: resetear marca (puede no existir en la nueva) y página.
+  // Al cambiar categoría: resetear marca (puede no existir en la nueva),
+  // modelo y página.
   const handleCategoria = (id: number | null) => {
     setCatFilter(id);
     setMarcaFilter(null);
+    setModeloFilter(null);
     setPage(1);
   };
-  const handleMarca = (m: string | null) => { setMarcaFilter(m); setPage(1); };
-  useEffect(() => { setPage(1); }, [debouncedSearch]);
+  // Al cambiar marca: resetear el modelo (se vuelve a la vista de modelos).
+  const handleMarca = (m: string | null) => { setMarcaFilter(m); setModeloFilter(null); setPage(1); };
+  const handleModelo = (m: string | null) => { setModeloFilter(m); setPage(1); };
+  // Buscar texto sale de la navegación por modelo y reinicia la página.
+  useEffect(() => { setModeloFilter(null); setPage(1); }, [debouncedSearch]);
 
   // ===== Showcase de destacados: SOLO los productos marcados como destacados.
   // Sin fallback: si no hay ninguno marcado, la sección no se muestra (antes
@@ -165,62 +202,134 @@ export function CatalogoPage() {
               <CategoryFilter categorias={categorias} selected={catFilter} onChange={handleCategoria} />
             </section>
           )}
-          {marcas.length > 1 && (
+          {marcas.length > 0 && (
             <section className="mb-6">
               <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
             </section>
           )}
 
           <section>
-            <div className="mb-5 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-electric/30 bg-electric/10 text-electric">
-                <LayoutGrid size={22} />
-              </span>
-              <div>
-                <h2 className="font-display text-xl font-extrabold tracking-tight text-ice sm:text-2xl">
-                  {sinFiltros ? "Todo el arsenal" : "Resultados"}
-                </h2>
-                <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">
-                  {sinFiltros ? "Catálogo completo" : "Búsqueda filtrada"}
-                </p>
-              </div>
-            </div>
-
-            {error ? (
-              <div className="rounded-2xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
-                <p className="text-sm text-danger">{error}</p>
-                <button type="button" onClick={loadProductos} className="mt-4 rounded-xl bg-gradient-to-r from-electric to-electric-deep px-5 py-2.5 font-display text-sm font-bold text-white">Reintentar</button>
-              </div>
-            ) : loading ? (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="overflow-hidden rounded-2xl border border-steel-light/40 bg-steel/40">
-                    <div className="skeleton aspect-square" />
-                    <div className="space-y-2 p-3.5">
-                      <div className="skeleton h-4 w-3/4 rounded" />
-                      <div className="skeleton h-3 w-1/2 rounded" />
-                      <div className="skeleton mt-3 h-6 w-1/3 rounded" />
-                    </div>
+            {mostrarModelos ? (
+              <>
+                {/* ===== Encabezado de la vista de MODELOS ===== */}
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-electric/30 bg-electric/10 text-electric">
+                    <Layers size={22} />
+                  </span>
+                  <div>
+                    <h2 className="font-display text-xl font-extrabold tracking-tight text-ice sm:text-2xl">
+                      Modelos {marcaFilter}
+                    </h2>
+                    <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">
+                      Elige un modelo para ver sus colores
+                    </p>
                   </div>
-                ))}
-              </div>
-            ) : productos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-steel-light/40 bg-steel/30 py-20 text-center">
-                <Fish size={48} className="text-steel-light" />
-                <p className="text-sm text-ice-faint">No se encontraron productos{search ? ` para "${search}"` : ""}.</p>
-              </div>
+                </div>
+
+                {modelosLoading ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="overflow-hidden rounded-2xl border border-steel-light/40 bg-steel/40">
+                        <div className="skeleton aspect-square" />
+                        <div className="space-y-2 p-3.5">
+                          <div className="skeleton h-4 w-3/4 rounded" />
+                          <div className="skeleton mt-3 h-6 w-1/3 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-5 text-sm text-ice-faint">
+                      <span className="font-bold text-ice">{modelos.length}</span> modelo{modelos.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                      {modelos.map((m) => (
+                        <ModeloCard key={m.modelo} modelo={m} onSelect={handleModelo} />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
             ) : (
               <>
-                <p className="mb-5 text-sm text-ice-faint">
-                  <span className="font-bold text-ice">{total}</span> producto{total !== 1 ? "s" : ""}
-                  {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-                  {productos.map((p) => (
-                    <ProductoCard key={p.id} producto={p} onAdd={carrito.addItem} onShowDetail={setDetalle} featured={p.destacado} />
-                  ))}
-                </div>
-                <Pagination page={page} totalPages={totalPages} onChange={goToPage} />
+                {/* ===== Encabezado: colores de un modelo, o catálogo/resultados ===== */}
+                {modeloFilter ? (
+                  <div className="mb-5">
+                    <button
+                      type="button"
+                      onClick={() => handleModelo(null)}
+                      className="mb-3 inline-flex items-center gap-1.5 rounded-lg border border-steel-light/50 bg-steel/40 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-ice-soft transition-colors hover:border-electric/50 hover:text-electric"
+                    >
+                      <ChevronLeft size={15} /> Modelos de {marcaFilter}
+                    </button>
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-electric/30 bg-electric/10 text-electric">
+                        <LayoutGrid size={22} />
+                      </span>
+                      <div>
+                        <h2 className="font-display text-xl font-extrabold tracking-tight text-ice sm:text-2xl">
+                          {modeloFilter}
+                        </h2>
+                        <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">
+                          Colores disponibles
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-5 flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-electric/30 bg-electric/10 text-electric">
+                      <LayoutGrid size={22} />
+                    </span>
+                    <div>
+                      <h2 className="font-display text-xl font-extrabold tracking-tight text-ice sm:text-2xl">
+                        {sinFiltros ? "Todo el arsenal" : "Resultados"}
+                      </h2>
+                      <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">
+                        {sinFiltros ? "Catálogo completo" : "Búsqueda filtrada"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {error ? (
+                  <div className="rounded-2xl border border-danger/30 bg-danger/5 px-6 py-12 text-center">
+                    <p className="text-sm text-danger">{error}</p>
+                    <button type="button" onClick={loadProductos} className="mt-4 rounded-xl bg-gradient-to-r from-electric to-electric-deep px-5 py-2.5 font-display text-sm font-bold text-white">Reintentar</button>
+                  </div>
+                ) : loading ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="overflow-hidden rounded-2xl border border-steel-light/40 bg-steel/40">
+                        <div className="skeleton aspect-square" />
+                        <div className="space-y-2 p-3.5">
+                          <div className="skeleton h-4 w-3/4 rounded" />
+                          <div className="skeleton h-3 w-1/2 rounded" />
+                          <div className="skeleton mt-3 h-6 w-1/3 rounded" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : productos.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-steel-light/40 bg-steel/30 py-20 text-center">
+                    <Fish size={48} className="text-steel-light" />
+                    <p className="text-sm text-ice-faint">No se encontraron productos{search ? ` para "${search}"` : ""}.</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-5 text-sm text-ice-faint">
+                      <span className="font-bold text-ice">{total}</span> {modeloFilter ? "color" : "producto"}{total !== 1 ? (modeloFilter ? "es" : "s") : ""}
+                      {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                      {productos.map((p) => (
+                        <ProductoCard key={p.id} producto={p} onAdd={carrito.addItem} onShowDetail={setDetalle} featured={p.destacado} />
+                      ))}
+                    </div>
+                    <Pagination page={page} totalPages={totalPages} onChange={goToPage} />
+                  </>
+                )}
               </>
             )}
           </section>

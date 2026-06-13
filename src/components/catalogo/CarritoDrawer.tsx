@@ -38,6 +38,11 @@ export function CarritoDrawer({ open, onClose, carrito }: { open: boolean; onClo
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-ice">{item.producto.nombre}</p>
+                      {(item.producto.modelo || item.producto.color) && (
+                        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-electric">
+                          {[item.producto.modelo, item.producto.color].filter(Boolean).join(" · ")}
+                        </p>
+                      )}
                       <p className="text-xs text-ice-faint">S/ {precio.toFixed(2)} c/u</p>
                       <div className="mt-1.5 flex items-center gap-2">
                         <button type="button" onClick={() => carrito.setQuantity(item.producto.id, item.cantidad - 1)}
