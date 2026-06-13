@@ -7,6 +7,7 @@ import type { Paginated } from "@/types/producto";
 interface Producto {
   id: number; codigo: string; nombre: string; marca: string;
   modelo: string | null;
+  color: string | null;
   precio_venta: string | number; stock: number; estado: string;
   imagen_url: string | null; destacado: boolean;
   descripcion: string | null; ficha_tecnica: string | null;
@@ -207,7 +208,10 @@ function Row({ p, onUpload, onDelImg, onToggleDestacado, onEdit }: {
           {p.nombre}
           {p.modelo ? <span className="ml-1.5 font-normal text-ink-soft">· {p.modelo}</span> : null}
         </p>
-        <p className="text-xs text-ink-faint">{p.marca} · {p.codigo} · S/ {precio.toFixed(2)} · Stock: {p.stock}</p>
+        <p className="text-xs text-ink-faint">
+          {p.marca} · {p.codigo} · S/ {precio.toFixed(2)} · Stock: {p.stock}
+          {p.color ? <span className="text-ink-soft"> · Color: {p.color}</span> : null}
+        </p>
         <div className="mt-1 flex items-center gap-2">
           <span className="flex items-center gap-1 text-xs">
             <span className={`inline-block h-2 w-2 rounded-full ${p.estado === "agotado" ? "bg-danger" : p.estado === "bajo_stock" ? "bg-amber-500" : "bg-success"}`} />
