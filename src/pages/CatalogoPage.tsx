@@ -290,14 +290,14 @@ export function CatalogoPage() {
 
         {/* ===== Filtros + catálogo completo ===== */}
         <div ref={catalogoRef} className={sinFiltros ? "mt-16 scroll-mt-20" : "scroll-mt-20"}>
-          {categorias.length > 0 && (
-            <section className="mb-3">
-              <CategoryFilter categorias={categorias} selected={catFilter} onChange={handleCategoria} />
-            </section>
-          )}
-          {marcas.length > 0 && (
-            <section className="mb-6">
-              <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
+          {(categorias.length > 0 || marcas.length > 0) && (
+            <section className="mb-6 flex flex-wrap items-center gap-3">
+              {categorias.length > 0 && (
+                <CategoryFilter categorias={categorias} selected={catFilter} onChange={handleCategoria} />
+              )}
+              {marcas.length > 0 && (
+                <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
+              )}
             </section>
           )}
 
