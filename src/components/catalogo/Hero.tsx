@@ -1,116 +1,23 @@
-import { Anchor, ChevronDown, Compass, Waves, Zap } from "lucide-react";
-
-interface HeroProps {
-  onExplore?: () => void;
-  productCount?: number;
-  brandCount?: number;
-}
-
-/**
- * Hero cinematográfico "ocean tactical".
- * Fondo marino profundo con rejilla táctica, halo de luz eléctrica y
- * elementos flotantes. Transmite fuerza, aventura y tecnología premium.
- */
+import { ArrowDown, Waves, MessageCircle } from "lucide-react";
+interface HeroProps { onExplore?: () => void; productCount?: number; brandCount?: number; }
 export function Hero({ onExplore, productCount, brandCount }: HeroProps) {
   return (
-    <section className="relative isolate overflow-hidden">
-      {/* Capas de fondo marino */}
-      <div className="absolute inset-0 -z-20 bg-gradient-to-b from-abyss-deep via-abyss to-steel" />
-      <div className="absolute inset-0 -z-20 bg-[radial-gradient(120%_80%_at_70%_-10%,rgba(14,165,233,0.28),transparent_60%)]" />
-      <div className="absolute inset-0 -z-20 bg-[radial-gradient(90%_70%_at_10%_110%,rgba(249,115,22,0.16),transparent_55%)]" />
-      <div className="tactical-grid absolute inset-0 -z-10 opacity-70" />
-
-      {/* Olas decorativas inferiores */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 bg-[radial-gradient(60%_100%_at_50%_100%,rgba(14,165,233,0.18),transparent_70%)]" />
-
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:py-24 lg:py-28">
-        <div className="max-w-3xl">
-          {/* Eyebrow */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-electric/30 bg-electric/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-electric animate-slide-up">
-            <Waves size={14} />
-            Pesca deportiva · Edición Spinning
-          </div>
-
-          <h1
-            className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-ice sm:text-6xl lg:text-7xl animate-slide-up"
-            style={{ animationDelay: "0.08s" }}
-          >
-            Domina el agua con
-            <br className="hidden sm:block" />
-            <span className="gradient-text text-glow"> nuestros </span>
-            <span className="gradient-text-strike"> productos</span>.
-          </h1>
-
-          <p
-            className="mt-6 max-w-xl text-base leading-relaxed text-ice-soft sm:text-lg animate-slide-up"
-            style={{ animationDelay: "0.16s" }}
-          >
-            Cañas, carretes, señuelos y líneas de las marcas líderes.
-            Tecnología de élite para el pescador que no acepta perder la batalla.
-          </p>
-
-          {/* CTA */}
-          <div
-            className="mt-9 flex flex-wrap items-center gap-3 animate-slide-up"
-            style={{ animationDelay: "0.24s" }}
-          >
-            <button
-              type="button"
-              onClick={onExplore}
-              className="sweep-host group inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-strike to-strike-deep px-7 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-white shadow-[0_18px_40px_-12px_rgba(249,115,22,0.6)] transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_50px_-10px_rgba(249,115,22,0.75)] active:scale-95"
-            >
-              <Zap size={18} className="transition-transform group-hover:scale-110" />
-              Explorar arsenal
-            </button>
-            <a
-              href="#destacados"
-              onClick={onExplore}
-              className="inline-flex items-center gap-2 rounded-2xl border border-electric/30 bg-electric/5 px-6 py-3.5 font-display text-sm font-bold uppercase tracking-wide text-electric transition-all hover:border-electric/60 hover:bg-electric/15"
-            >
-              <Compass size={18} />
-              Ver destacados
-            </a>
-          </div>
-
-          {/* Métricas */}
-          <div
-            className="mt-12 flex flex-wrap items-center gap-x-10 gap-y-4 animate-slide-up"
-            style={{ animationDelay: "0.32s" }}
-          >
-            <Stat value={productCount ? `${productCount}+` : "100+"} label="Productos en stock" />
-            <div className="hidden h-10 w-px bg-steel-light/60 sm:block" />
-            <Stat value={brandCount ? `${brandCount}+` : "12+"} label="Marcas premium" />
-            <div className="hidden h-10 w-px bg-steel-light/60 sm:block" />
-            <Stat value="100%" label="Originales garantizados" />
+    <section className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#123e52] via-abyss to-[#123348]">
+      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:grid-cols-[1fr_auto] sm:items-center sm:py-12">
+        <div>
+          <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-sky-200"><Waves size={17} /> Fishing and More · Nasca</p>
+          <h1 className="max-w-2xl font-display text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">Tu próxima pesca<br /><span className="text-sky-200">empieza aquí.</span></h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-ice-soft sm:text-base">Encuentra cañas, carretes y señuelos. Compara, arma tu pedido y coordina con nosotros por WhatsApp.</p>
+          <div className="mt-5 flex flex-wrap items-center gap-4">
+            <button type="button" onClick={onExplore} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-strike-deep px-5 py-3 text-sm font-bold text-white">Ver productos <ArrowDown size={17} /></button>
+            <span className="flex items-center gap-2 text-xs text-ice-soft"><MessageCircle size={16} /> Compra con atención personalizada</span>
           </div>
         </div>
-      </div>
-
-      {/* Ancla flotante decorativa */}
-      <div className="pointer-events-none absolute right-6 top-1/2 hidden -translate-y-1/2 lg:block">
-        <div className="rounded-3xl border border-electric/20 bg-steel/30 p-8">
-          <Anchor size={120} strokeWidth={1} className="text-electric/30" />
+        <div className="hidden min-w-44 border-l border-white/15 pl-8 sm:block">
+          <p className="font-display text-3xl font-semibold text-white">{productCount ?? 0}</p><p className="mt-1 text-sm text-ice-soft">productos en el catálogo</p>
+          <p className="mt-5 font-display text-3xl font-semibold text-white">{brandCount ?? 0}</p><p className="mt-1 text-sm text-ice-soft">marcas para explorar</p>
         </div>
       </div>
-
-      {/* Indicador de scroll */}
-      <button
-        type="button"
-        onClick={onExplore}
-        aria-label="Desplazar"
-        className="absolute bottom-5 left-1/2 -translate-x-1/2 text-ice-faint transition-colors hover:text-electric"
-      >
-        <ChevronDown size={26} className="animate-bounce" />
-      </button>
     </section>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <p className="font-display text-2xl font-extrabold text-ice sm:text-3xl">{value}</p>
-      <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">{label}</p>
-    </div>
   );
 }

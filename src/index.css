@@ -13,7 +13,7 @@
   --color-electric-deep: #0284C7;
   --color-ice: #F8FAFC;          /* blanco hielo */
   --color-ice-soft: #cbd5e1;     /* texto secundario */
-  --color-ice-faint: #64748b;    /* texto tenue */
+  --color-ice-faint: #a3b4c7;    /* texto tenue */
   --color-strike: #F97316;       /* naranja strike */
   --color-strike-deep: #EA580C;
 
@@ -132,3 +132,14 @@
 @media (prefers-reduced-motion: reduce) {
   .sweep-host:hover::after { animation: none !important; }
 }
+
+/* Controles del catálogo: visibles, táctiles y navegables con teclado. */
+.category-chip { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; border: 1px solid #537184; border-radius: 999px; padding: .55rem 1rem; font-size: .875rem; color: #e2e8f0; transition: background .15s; }
+.category-chip:hover { background: #26495f; }
+.category-chip.is-selected { background: #e0f2fe; color: #0c354d; border-color: #e0f2fe; font-weight: 700; }
+.active-filter { display: inline-flex; align-items: center; gap: .5rem; min-height: 40px; border-radius: 8px; background: #071b2a; padding: .5rem .75rem; font-size: .8rem; color: #e0f2fe; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, .catalog-filters:focus-visible { outline: 3px solid #7dd3fc; outline-offset: 3px; }
+.catalog-header form:focus-within { box-shadow: 0 0 0 3px #38bdf8; }
+@media (max-width: 380px) { .catalog-header nav > span { display: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp } from "lucide-react";
+import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import { catalogoApi } from "@/api/client";
 import { useCarrito } from "@/hooks/useCarrito";
 import { Header } from "@/components/layout/Header";
@@ -58,7 +58,7 @@ export function CatalogoPage() {
 
   // Texto de búsqueda: estado local (para que escribir sea fluido) + debounce.
   const [search, setSearch] = useState(qParam);
-  const [debouncedSearch, setDebouncedSearch] = useState(qParam);
+  const debouncedSearch = qParam;
 
   const updateParams = useCallback(
     (mutate: (p: URLSearchParams) => void, opts?: { replace?: boolean }) => {
@@ -79,23 +79,16 @@ export function CatalogoPage() {
   // (o aún se están cargando). Si no tiene ninguno, caemos a sus productos.
   const mostrarModelos = enVistaModelos && (modelosLoading || modelos.length > 0);
 
-  // La búsqueda de texto se aplica con un pequeño retraso (mientras se escribe).
+  // La URL es la fuente de los filtros, también al usar atrás/adelante.
+  useEffect(() => { setSearch(qParam); }, [qParam]);
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 350);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  // Refleja la búsqueda (debounced) en la URL y reinicia página/modelo. El
-  // guard evita reescrituras en el montaje y bucles.
-  useEffect(() => {
-    if (debouncedSearch === qParam) return;
-    updateParams((p) => {
-      if (debouncedSearch.trim()) p.set("q", debouncedSearch.trim());
-      else p.delete("q");
-      p.delete("page");
-      p.delete("modelo");
-    }, { replace: true });
-  }, [debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (search.trim() === qParam) return;
+    const timer = window.setTimeout(() => updateParams((p) => {
+      if (search.trim()) p.set("q", search.trim()); else p.delete("q");
+      p.delete("page"); p.delete("modelo");
+    }, { replace: true }), 350);
+    return () => window.clearTimeout(timer);
+  }, [search, qParam, updateParams]);
 
   // Imagen ampliada (lightbox) y producto en detalle.
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
@@ -127,13 +120,32 @@ export function CatalogoPage() {
   }, []);
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
 
+  const filtersRef = useRef<HTMLElement>(null);
   const catalogoRef = useRef<HTMLDivElement>(null);
   const scrollToCatalogo = () => catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+  const focusFilters = () => {
+    filtersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    filtersRef.current?.focus({ preventScroll: true });
+  };
+  const submitSearch = () => {
+    updateParams(p => {
+      if (search.trim()) p.set("q", search.trim()); else p.delete("q");
+      p.delete("page"); p.delete("modelo");
+    }, { replace: true });
+    focusFilters();
+  };
+  const clearFilters = () => {
+    setSearch("");
+    updateParams(p => { ["q", "cat", "marca", "modelo", "page"].forEach(key => p.delete(key)); });
+  };
+  const activeFilters = Number(!!qParam) + Number(catFilter !== null) + Number(!!marcaFilter) + Number(!!modeloFilter);
+  const productRequest = useRef(0);
   const sinFiltros = !debouncedSearch.trim() && catFilter === null && marcaFilter === null;
 
   // Productos (con filtros, paginados en el servidor) + destacados (sin filtros).
   const loadProductos = useCallback(async () => {
+    const request = ++productRequest.current;
     // En la vista de modelos no se cargan productos: se muestran los modelos.
     if (mostrarModelos) {
       setProductos([]); setTotal(0); setTotalPages(1); setLoading(false);
@@ -157,28 +169,32 @@ export function CatalogoPage() {
           ? catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", { params: { solo_destacados: true, page_size: 12 } })
           : Promise.resolve({ data: { items: [] as CatalogoProducto[] } as Paginated<CatalogoProducto> }),
       ]);
+      if (request !== productRequest.current) return;
       setProductos(prod.data.items);
       setTotal(prod.data.total);
       setTotalPages(Math.max(1, prod.data.total_pages));
       setDestacados(dest.data.items);
-    } catch { setError("No se pudo cargar el catálogo."); }
-    finally { setLoading(false); }
+    } catch { if (request === productRequest.current) setError("No se pudo cargar el catálogo."); }
+    finally { if (request === productRequest.current) setLoading(false); }
   }, [debouncedSearch, catFilter, marcaFilter, modeloFilter, orden, sinFiltros, page, mostrarModelos]);
 
-  useEffect(() => { void loadProductos(); }, [loadProductos]);
+  useEffect(() => { void loadProductos(); return () => { productRequest.current += 1; }; }, [loadProductos]);
 
   // Modelos de la marca seleccionada (paso intermedio Marca → Modelo). Solo se
   // cargan cuando hay marca y no hay búsqueda de texto activa.
   useEffect(() => {
-    if (marcaFilter === null || debouncedSearch.trim()) { setModelos([]); return; }
+    if (marcaFilter === null || debouncedSearch.trim()) { setModelos([]); setModelosLoading(false); return; }
+    let active = true;
+    setModelos([]);
     setModelosLoading(true);
     catalogoApi
       .get<CatalogoModelo[]>("/catalogo/modelos", {
         params: { marca: marcaFilter, categoria_id: catFilter ?? undefined },
       })
-      .then((r) => setModelos(r.data))
-      .catch(() => setModelos([]))
-      .finally(() => setModelosLoading(false));
+      .then((r) => { if (active) setModelos(r.data); })
+      .catch(() => { if (active) setModelos([]); })
+      .finally(() => { if (active) setModelosLoading(false); });
+    return () => { active = false; };
   }, [marcaFilter, catFilter, debouncedSearch]);
 
   // Categorías y banners (una vez).
@@ -189,10 +205,12 @@ export function CatalogoPage() {
 
   // Marcas: siempre disponibles. Si hay categoría elegida, se acotan a ella.
   useEffect(() => {
+    let active = true;
     catalogoApi
       .get<CatalogoMarca[]>("/catalogo/marcas", { params: { categoria_id: catFilter ?? undefined } })
-      .then((r) => setMarcas(r.data))
-      .catch(() => setMarcas([]));
+      .then((r) => { if (active) setMarcas(r.data); })
+      .catch(() => { if (active) setMarcas([]); });
+    return () => { active = false; };
   }, [catFilter]);
 
   // Al cambiar categoría: resetear marca (puede no existir en la nueva), modelo
@@ -265,12 +283,12 @@ export function CatalogoPage() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-abyss text-ice">
+    <div className="relative min-h-screen overflow-x-clip bg-abyss text-ice">
       {/* Fondo global oceánico */}
       <div className="pointer-events-none fixed inset-0 -z-20 bg-gradient-to-b from-abyss via-abyss to-abyss-deep" />
       <div className="pointer-events-none fixed inset-0 -z-20 bg-[radial-gradient(80%_50%_at_80%_0%,rgba(14,165,233,0.10),transparent_60%)]" />
 
-      <Header totalItems={carrito.totalItems} onCartClick={() => setDrawerOpen(true)} searchValue={search} onSearchChange={setSearch} />
+      <Header totalItems={carrito.totalItems} onCartClick={() => setDrawerOpen(true)} searchValue={search} onSearchChange={setSearch} onFilterClick={focusFilters} onSearchSubmit={submitSearch} activeFilters={activeFilters} />
 
       {/* Hero solo cuando no hay búsqueda/filtros activos */}
       {sinFiltros && (
@@ -282,31 +300,8 @@ export function CatalogoPage() {
       )}
 
       <main className="mx-auto max-w-6xl px-4 py-10">
-        {banners.length > 0 && sinFiltros && (
-          <section className="mb-12 animate-fade-in">
-            <BannerCarousel banners={banners} onImageClick={openLightbox} />
-          </section>
-        )}
-
-        {/* ===== Showcase: solo productos realmente marcados como destacados ===== */}
-        {sinFiltros && !loading && destacadosTop.length > 0 && (
-          <div className="space-y-14">
-            <ProductSection
-              id="destacados"
-              icon={Flame}
-              accent="strike"
-              title="Productos destacados"
-              subtitle="Selección élite del arsenal"
-              productos={destacadosTop}
-              badge="TOP"
-              onAdd={handleAdd}
-              onShowDetail={setDetalle}
-            />
-          </div>
-        )}
-
         {/* ===== Filtros + catálogo completo ===== */}
-        <div ref={catalogoRef} className={sinFiltros ? "mt-16 scroll-mt-20" : "scroll-mt-20"}>
+        <div ref={catalogoRef} className="scroll-mt-52">
           {/* Flecha para retroceder un nivel de filtro (la vista de colores tiene la suya). */}
           {!sinFiltros && !modeloFilter && (
             <button
@@ -317,16 +312,27 @@ export function CatalogoPage() {
               <ChevronLeft size={15} /> Volver
             </button>
           )}
-          {(categorias.length > 0 || marcas.length > 0) && (
-            <section className="mb-6 flex flex-wrap items-center gap-3">
-              {categorias.length > 0 && (
-                <CategoryFilter categorias={categorias} selected={catFilter} onChange={handleCategoria} />
-              )}
-              {marcas.length > 0 && (
-                <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
-              )}
-            </section>
-          )}
+          <section ref={filtersRef} tabIndex={-1} aria-labelledby="filter-title" className="catalog-filters mb-8 scroll-mt-52 rounded-2xl border border-sky-300/30 bg-[#123044] p-4 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div><h2 id="filter-title" className="flex items-center gap-2 font-display text-lg font-bold"><SlidersHorizontal size={21} className="text-sky-200" /> Encuentra tu equipo</h2>
+              <p className="mt-1 text-sm text-ice-soft">Explora por categoría o afina tu búsqueda con una marca.</p></div>
+              {activeFilters > 0 && <button type="button" onClick={clearFilters} className="min-h-11 rounded-lg border border-white/25 px-3 text-sm font-semibold text-white">Limpiar filtros ({activeFilters})</button>}
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <CategoryFilter categorias={categorias} selected={catFilter} onChange={handleCategoria} />
+              <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
+            </div>
+            {categorias.length > 0 && <div aria-label="Categorías rápidas" className="mt-4 flex flex-wrap gap-2">
+              <button type="button" aria-pressed={catFilter === null} onClick={() => handleCategoria(null)} className={"category-chip " + (catFilter === null ? "is-selected" : "")}>Todas las categorías</button>
+              {categorias.slice(0, 8).map(c => <button key={c.id} type="button" aria-pressed={catFilter === c.id} onClick={() => handleCategoria(c.id)} className={"category-chip " + (catFilter === c.id ? "is-selected" : "")}>{c.nombre} <span className="opacity-75">{c.cantidad_productos}</span></button>)}
+            </div>}
+            {activeFilters > 0 && <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4" aria-label="Filtros activos">
+              {qParam && <button type="button" onClick={() => setSearch("")} className="active-filter">Búsqueda: {qParam} <X size={15} /></button>}
+              {catFilter !== null && <button type="button" onClick={() => handleCategoria(null)} className="active-filter">{categorias.find(c => c.id === catFilter)?.nombre ?? "Categoría"} <X size={15} /></button>}
+              {marcaFilter && <button type="button" onClick={() => handleMarca(null)} className="active-filter">{marcaFilter} <X size={15} /></button>}
+              {modeloFilter && <button type="button" onClick={() => handleModelo(null)} className="active-filter">{modeloFilter} <X size={15} /></button>}
+            </div>}
+          </section>
 
           <section>
             {mostrarModelos ? (
@@ -404,7 +410,7 @@ export function CatalogoPage() {
                     </span>
                     <div>
                       <h2 className="font-display text-xl font-extrabold tracking-tight text-ice sm:text-2xl">
-                        {sinFiltros ? "Todo el arsenal" : "Resultados"}
+                        {sinFiltros ? "Todos los productos" : "Resultados"}
                       </h2>
                       <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">
                         {sinFiltros ? "Catálogo completo" : "Búsqueda filtrada"}
@@ -434,11 +440,13 @@ export function CatalogoPage() {
                 ) : productos.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-steel-light/40 bg-steel/30 py-20 text-center">
                     <Fish size={48} className="text-steel-light" />
-                    <p className="text-sm text-ice-faint">No se encontraron productos{search ? ` para "${search}"` : ""}.</p>
+                    <p className="text-sm text-ice-soft">No se encontraron productos{search ? ` para "${search}"` : ""}.</p>
+                    <p className="text-sm text-ice-soft">Prueba otra palabra o elimina los filtros para ver más opciones.</p>
+                    <button type="button" onClick={clearFilters} className="mt-2 min-h-11 rounded-xl bg-electric-deep px-5 font-semibold text-white">Ver todos los productos</button>
                   </div>
                 ) : (
                   <>
-                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                    <div role="status" aria-live="polite" className="mb-5 flex flex-wrap items-center justify-between gap-3">
                       <p className="text-sm text-ice-faint">
                         <span className="font-bold text-ice">{total}</span> {modeloFilter ? "color" : "producto"}{total !== 1 ? (modeloFilter ? "es" : "s") : ""}
                         {totalPages > 1 ? ` · página ${page} de ${totalPages}` : ""}
@@ -457,6 +465,29 @@ export function CatalogoPage() {
             )}
           </section>
         </div>
+        {banners.length > 0 && sinFiltros && (
+          <section className="mt-10 animate-fade-in">
+            <BannerCarousel banners={banners} onImageClick={openLightbox} />
+          </section>
+        )}
+
+        {/* ===== Showcase: solo productos realmente marcados como destacados ===== */}
+        {sinFiltros && !loading && destacadosTop.length > 0 && (
+          <div className="mt-12 space-y-14">
+            <ProductSection
+              id="destacados"
+              icon={Flame}
+              accent="strike"
+              title="Productos destacados"
+              subtitle="Una selección para tu próxima salida"
+              productos={destacadosTop}
+              badge="TOP" layout="rail"
+              onAdd={handleAdd}
+              onShowDetail={setDetalle}
+            />
+          </div>
+        )}
+
       </main>
 
       <Footer />
@@ -488,7 +519,7 @@ export function CatalogoPage() {
 
       {/* Toast de confirmación al agregar al carrito */}
       {toastMsg && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-electric/40 bg-abyss/95 px-4 py-3 text-sm font-semibold text-ice shadow-[0_18px_40px_-12px_rgba(14,165,233,0.6)] animate-slide-up">
+        <div role="status" aria-live="polite" className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-electric/40 bg-abyss/95 px-4 py-3 text-sm font-semibold text-ice shadow-[0_18px_40px_-12px_rgba(14,165,233,0.6)] animate-slide-up">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-white">
             <Check size={13} strokeWidth={3} />
           </span>

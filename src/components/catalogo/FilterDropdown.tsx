@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown, Search, Check } from "lucide-react";
 
 export interface FilterOption {
@@ -31,6 +31,8 @@ export function FilterDropdown({
   onSelect,
   allLabel = "Todas",
 }: FilterDropdownProps) {
+  const panelId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -43,7 +45,7 @@ export function FilterDropdown({
     const onDoc = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); triggerRef.current?.focus(); } };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -65,31 +67,35 @@ export function FilterDropdown({
   const choose = (key: string | null) => {
     onSelect(key);
     setOpen(false);
+    triggerRef.current?.focus();
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative w-full sm:w-auto">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        ref={triggerRef}
+        aria-controls={panelId}
         aria-expanded={open}
-        className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 font-display text-sm font-semibold transition-all ${
+        className={`flex min-h-12 w-full items-center gap-2 rounded-xl border px-4 py-3 font-display text-sm font-semibold transition-all ${
           selected
             ? "border-electric/60 bg-electric/15 text-ice"
-            : "border-steel-light/50 bg-steel/50 text-ice-soft hover:border-electric/40 hover:text-ice"
+            : "border-sky-200/40 bg-white/10 text-white hover:border-sky-200 hover:bg-white/15"
         }`}
       >
-        <span className="text-ice-faint">{label}:</span>
+        <span className="text-ice-soft">{label}:</span>
         <span className="max-w-[160px] truncate">{selected ? selected.label : allLabel}</span>
         <ChevronDown size={15} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-40 mt-2 w-64 max-w-[80vw] overflow-hidden rounded-xl border border-steel-light/50 bg-steel shadow-[0_24px_50px_-18px_rgba(0,0,0,0.9)]">
+        <div id={panelId} className="absolute left-0 top-full z-40 mt-2 w-full min-w-64 max-w-[80vw] overflow-hidden rounded-xl border border-steel-light/50 bg-steel shadow-[0_24px_50px_-18px_rgba(0,0,0,0.9)]">
           {options.length > 6 && (
             <div className="relative border-b border-steel-light/40 p-2">
               <Search size={14} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ice-faint" />
               <input
+                aria-label={`Buscar ${label.toLowerCase()}`}
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -103,7 +109,7 @@ export function FilterDropdown({
               <button
                 type="button"
                 onClick={() => choose(null)}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-abyss/40"
+                className="flex w-full items-center justify-between gap-2 min-h-11 px-3 py-2 text-left text-sm transition-colors hover:bg-abyss/40"
               >
                 <span className={selectedKey === null ? "font-semibold text-electric" : "text-ice-soft"}>
                   {allLabel}
@@ -116,7 +122,7 @@ export function FilterDropdown({
                 <button
                   type="button"
                   onClick={() => choose(o.key)}
-                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-abyss/40"
+                  className="flex w-full items-center justify-between gap-2 min-h-11 px-3 py-2 text-left text-sm transition-colors hover:bg-abyss/40"
                 >
                   <span className={`truncate ${o.key === selectedKey ? "font-semibold text-electric" : "text-ice"}`}>
                     {o.label}

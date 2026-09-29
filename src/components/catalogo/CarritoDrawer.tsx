@@ -6,6 +6,8 @@ type Cart = ReturnType<typeof useCarrito>;
 function toNum(v: string | number) { return typeof v === "string" ? parseFloat(v) : v; }
 
 export function CarritoDrawer({ open, onClose, carrito }: { open: boolean; onClose: () => void; carrito: Cart }) {
+  if (!open) return null;
+
   return (
     <>
       {open && <div className="fixed inset-0 z-50 bg-abyss-deep/80" onClick={onClose} />}
@@ -16,7 +18,7 @@ export function CarritoDrawer({ open, onClose, carrito }: { open: boolean; onClo
             <h2 className="font-display text-lg font-extrabold text-ice">Mi pedido</h2>
             {carrito.totalItems > 0 && <span className="rounded-lg bg-strike/15 px-2 py-0.5 text-xs font-bold text-strike">{carrito.totalItems}</span>}
           </div>
-          <button type="button" onClick={onClose} className="rounded-xl p-2 text-ice-faint transition-colors hover:bg-abyss/60 hover:text-ice"><X size={20} /></button>
+          <button type="button" aria-label="Cerrar pedido" onClick={onClose} className="rounded-xl p-2 text-ice-faint transition-colors hover:bg-abyss/60 hover:text-ice"><X size={20} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto dark-scroll px-5 py-4">
@@ -45,16 +47,16 @@ export function CarritoDrawer({ open, onClose, carrito }: { open: boolean; onClo
                       )}
                       <p className="text-xs text-ice-faint">S/ {precio.toFixed(2)} c/u</p>
                       <div className="mt-1.5 flex items-center gap-2">
-                        <button type="button" onClick={() => carrito.setQuantity(item.producto.id, item.cantidad - 1)}
+                        <button type="button" aria-label={`Quitar una unidad de ${item.producto.nombre}`} onClick={() => carrito.setQuantity(item.producto.id, item.cantidad - 1)}
                           className="flex h-7 w-7 items-center justify-center rounded-md border border-steel-light/50 text-ice-soft transition-colors hover:border-electric/50 hover:text-electric"><Minus size={14} /></button>
                         <span className="w-6 text-center text-sm font-bold tabular-nums text-ice">{item.cantidad}</span>
-                        <button type="button" onClick={() => carrito.setQuantity(item.producto.id, item.cantidad + 1)}
+                        <button type="button" aria-label={`Agregar una unidad de ${item.producto.nombre}`} onClick={() => carrito.setQuantity(item.producto.id, item.cantidad + 1)}
                           className="flex h-7 w-7 items-center justify-center rounded-md border border-steel-light/50 text-ice-soft transition-colors hover:border-electric/50 hover:text-electric"><Plus size={14} /></button>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-sm font-bold tabular-nums text-electric">S/ {(precio * item.cantidad).toFixed(2)}</span>
-                      <button type="button" onClick={() => carrito.removeItem(item.producto.id)} className="rounded-md p-1 text-ice-faint transition-colors hover:text-danger"><Trash2 size={14} /></button>
+                      <button type="button" aria-label={`Eliminar ${item.producto.nombre} del pedido`} onClick={() => carrito.removeItem(item.producto.id)} className="rounded-md p-1 text-ice-faint transition-colors hover:text-danger"><Trash2 size={14} /></button>
                     </div>
                   </li>
                 );

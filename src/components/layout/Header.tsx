@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Search, ShoppingBag, X } from "lucide-react";
+import { Search, ShoppingBag, SlidersHorizontal, X } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
 
 interface HeaderProps {
@@ -7,71 +6,38 @@ interface HeaderProps {
   onCartClick: () => void;
   searchValue: string;
   onSearchChange: (v: string) => void;
+  onFilterClick: () => void;
+  onSearchSubmit: () => void;
+  activeFilters: number;
 }
 
-export function Header({ totalItems, onCartClick, searchValue, onSearchChange }: HeaderProps) {
-  const [mobileSearch, setMobileSearch] = useState(false);
-
+export function Header({ totalItems, onCartClick, searchValue, onSearchChange, onFilterClick, onSearchSubmit, activeFilters }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 border-b border-steel-light/40 bg-abyss">
-      {/* Línea de glow superior */}
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-electric/60 to-transparent" />
-
-      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:gap-3">
-        <a href="/" className="flex min-w-0 shrink items-center" aria-label="Inicio">
-          <Logo />
-        </a>
-
-        <div className="relative mx-4 hidden flex-1 sm:block">
-          <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ice-faint" />
-          <input
-            type="search"
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Buscar cañas, carretes, señuelos, líneas…"
-            className="w-full rounded-xl border border-steel-light/50 bg-steel/50 py-2.5 pl-10 pr-4 text-sm text-ice placeholder:text-ice-faint transition-all focus:border-electric/60 focus:bg-steel/70 focus:outline-none focus:ring-2 focus:ring-electric/25"
-          />
-        </div>
-
-        <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0">
-          <button
-            type="button"
-            onClick={() => setMobileSearch(!mobileSearch)}
-            className="rounded-xl p-2.5 text-ice-soft transition-colors hover:bg-steel/60 hover:text-ice sm:hidden"
-          >
-            {mobileSearch ? <X size={20} /> : <Search size={20} />}
-          </button>
-          <button
-            type="button"
-            onClick={onCartClick}
-            className="relative flex items-center gap-2 rounded-xl bg-gradient-to-r from-strike to-strike-deep px-4 py-2.5 font-display text-sm font-bold text-white shadow-[0_10px_24px_-10px_rgba(249,115,22,0.8)] transition-all hover:-translate-y-0.5 active:scale-[0.97]"
-          >
-            <ShoppingBag size={18} />
-            <span className="hidden sm:inline">Mi Pedido</span>
-            {totalItems > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-xs font-extrabold text-strike-deep">
-                {totalItems}
-              </span>
-            )}
-          </button>
-        </div>
+    <header className="catalog-header sticky top-0 z-40 border-b border-white/10 bg-abyss">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3 sm:gap-5">
+        <a href="/" className="min-w-0 flex-1 sm:flex-none" aria-label="Fishing and More, inicio"><Logo /></a>
+        <form role="search" onSubmit={(e) => { e.preventDefault(); onSearchSubmit(); }}
+          className="order-3 flex w-full items-center rounded-xl bg-white p-1 shadow-sm sm:order-none sm:w-auto sm:flex-1">
+          <Search size={20} aria-hidden="true" className="ml-3 shrink-0 text-slate-500" />
+          <label htmlFor="catalog-search" className="sr-only">Buscar productos por nombre, marca o modelo</label>
+          <input id="catalog-search" type="search" value={searchValue}
+            onChange={(e) => onSearchChange(e.target.value)} placeholder="Buscar productos, marcas…"
+            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-base text-slate-900 placeholder:text-slate-500 focus:outline-none" />
+          {searchValue && <button type="button" onClick={() => onSearchChange("")} aria-label="Borrar búsqueda" className="rounded-lg p-2.5 text-slate-600"><X size={18} /></button>}
+          <button type="submit" className="rounded-lg bg-electric-deep px-3 py-2.5 text-sm font-bold text-white">Buscar</button>
+        </form>
+        <button type="button" onClick={onCartClick} className="flex min-h-11 items-center gap-2 rounded-xl border border-white/20 px-3 py-2 text-sm font-semibold text-white">
+          <ShoppingBag size={19} /><span>Mi pedido</span><span className="rounded-full bg-strike px-1.5 text-xs text-white">{totalItems}</span>
+        </button>
       </div>
-
-      {mobileSearch && (
-        <div className="border-t border-steel-light/40 px-4 pb-3 pt-2 sm:hidden">
-          <div className="relative">
-            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ice-faint" />
-            <input
-              type="search"
-              autoFocus
-              value={searchValue}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Buscar productos…"
-              className="w-full rounded-xl border border-steel-light/50 bg-steel/50 py-2.5 pl-10 pr-4 text-sm text-ice placeholder:text-ice-faint focus:border-electric/60 focus:bg-steel/70 focus:outline-none"
-            />
-          </div>
-        </div>
-      )}
+      <div className="border-t border-white/10">
+        <nav aria-label="Accesos al catálogo" className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2">
+          <button type="button" onClick={onFilterClick} className="flex min-h-10 items-center gap-2 rounded-lg bg-electric/15 px-3 text-sm font-bold text-sky-200">
+            <SlidersHorizontal size={17} /> Categorías y filtros {activeFilters > 0 && <span className="rounded-full bg-electric-deep px-2 text-white">{activeFilters}</span>}
+          </button>
+          <span className="hidden text-xs text-ice-soft sm:block">Elige · Agrega · Pide por WhatsApp</span>
+        </nav>
+      </div>
     </header>
   );
 }
