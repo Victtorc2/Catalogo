@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Fish, MessageCircle, Flame, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
+import { Fish, MessageCircle, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import { catalogoApi } from "@/api/client";
 import { useCarrito } from "@/hooks/useCarrito";
 import { Header } from "@/components/layout/Header";
@@ -10,7 +10,6 @@ import { CategoryFilter } from "@/components/catalogo/CategoryFilter";
 import { BrandFilter } from "@/components/catalogo/BrandFilter";
 import { ProductoCard } from "@/components/catalogo/ProductoCard";
 import { ModeloCard } from "@/components/catalogo/ModeloCard";
-import { ProductSection } from "@/components/catalogo/ProductSection";
 import { Pagination } from "@/components/catalogo/Pagination";
 import { CarritoDrawer } from "@/components/catalogo/CarritoDrawer";
 import { ImageLightbox } from "@/components/catalogo/ImageLightbox";
@@ -38,7 +37,6 @@ export function CatalogoPage() {
   const [productos, setProductos] = useState<CatalogoProducto[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [destacados, setDestacados] = useState<CatalogoProducto[]>([]);
   const [categorias, setCategorias] = useState<CatalogoCategoria[]>([]);
   const [marcas, setMarcas] = useState<CatalogoMarca[]>([]);
   const [modelos, setModelos] = useState<CatalogoModelo[]>([]);
@@ -49,6 +47,10 @@ export function CatalogoPage() {
 
   // ===== Estado de navegación en la URL (links compartibles + botón "atrás") =====
   const [searchParams, setSearchParams] = useSearchParams();
+  const vistaParam = searchParams.get("vista");
+  const vista = vistaParam === "destacados" || vistaParam === "promociones" ? vistaParam : "todos";
+  const [bannersLoading, setBannersLoading] = useState(true);
+  const [bannersError, setBannersError] = useState(false);
   const catFilter = searchParams.get("cat") ? Number(searchParams.get("cat")) : null;
   const marcaFilter = searchParams.get("marca");
   const modeloFilter = searchParams.get("modelo");
@@ -74,7 +76,7 @@ export function CatalogoPage() {
   // Vista de MODELOS: tras elegir una marca (sin buscar) y antes de elegir un
   // modelo, se muestran los modelos de esa marca en lugar de los productos.
   const enVistaModelos =
-    marcaFilter !== null && modeloFilter === null && !debouncedSearch.trim();
+    vista === "todos" && marcaFilter !== null && modeloFilter === null && !debouncedSearch.trim();
   // Solo mostramos la grilla de modelos si la marca realmente tiene modelos
   // (o aún se están cargando). Si no tiene ninguno, caemos a sus productos.
   const mostrarModelos = enVistaModelos && (modelosLoading || modelos.length > 0);
@@ -86,6 +88,7 @@ export function CatalogoPage() {
     const timer = window.setTimeout(() => updateParams((p) => {
       if (search.trim()) p.set("q", search.trim()); else p.delete("q");
       p.delete("page"); p.delete("modelo");
+      if (p.get("vista") === "promociones") p.delete("vista");
     }, { replace: true }), 350);
     return () => window.clearTimeout(timer);
   }, [search, qParam, updateParams]);
@@ -125,6 +128,7 @@ export function CatalogoPage() {
   const scrollToCatalogo = () => catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const focusFilters = () => {
+    if (vista === "promociones") updateParams(p => p.delete("vista"));
     filtersRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     filtersRef.current?.focus({ preventScroll: true });
   };
@@ -132,8 +136,9 @@ export function CatalogoPage() {
     updateParams(p => {
       if (search.trim()) p.set("q", search.trim()); else p.delete("q");
       p.delete("page"); p.delete("modelo");
+      if (p.get("vista") === "promociones") p.delete("vista");
     }, { replace: true });
-    focusFilters();
+    catalogoRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const clearFilters = () => {
     setSearch("");
@@ -147,15 +152,15 @@ export function CatalogoPage() {
   const loadProductos = useCallback(async () => {
     const request = ++productRequest.current;
     // En la vista de modelos no se cargan productos: se muestran los modelos.
-    if (mostrarModelos) {
+    if (mostrarModelos || vista === "promociones") {
       setProductos([]); setTotal(0); setTotalPages(1); setLoading(false);
       return;
     }
     setLoading(true); setError(null);
     try {
-      const [prod, dest] = await Promise.all([
-        catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", {
+      const prod = await catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", {
           params: {
+            solo_destacados: vista === "destacados" || undefined,
             search: debouncedSearch.trim() || undefined,
             categoria_id: catFilter ?? undefined,
             marca: marcaFilter ?? undefined,
@@ -164,19 +169,14 @@ export function CatalogoPage() {
             page,
             page_size: PAGE_SIZE,
           },
-        }),
-        sinFiltros
-          ? catalogoApi.get<Paginated<CatalogoProducto>>("/catalogo/productos", { params: { solo_destacados: true, page_size: 12 } })
-          : Promise.resolve({ data: { items: [] as CatalogoProducto[] } as Paginated<CatalogoProducto> }),
-      ]);
+        });
       if (request !== productRequest.current) return;
       setProductos(prod.data.items);
       setTotal(prod.data.total);
       setTotalPages(Math.max(1, prod.data.total_pages));
-      setDestacados(dest.data.items);
     } catch { if (request === productRequest.current) setError("No se pudo cargar el catálogo."); }
     finally { if (request === productRequest.current) setLoading(false); }
-  }, [debouncedSearch, catFilter, marcaFilter, modeloFilter, orden, sinFiltros, page, mostrarModelos]);
+  }, [debouncedSearch, catFilter, marcaFilter, modeloFilter, orden, sinFiltros, page, mostrarModelos, vista]);
 
   useEffect(() => { void loadProductos(); return () => { productRequest.current += 1; }; }, [loadProductos]);
 
@@ -200,8 +200,16 @@ export function CatalogoPage() {
   // Categorías y banners (una vez).
   useEffect(() => {
     catalogoApi.get<CatalogoCategoria[]>("/catalogo/categorias").then((r) => setCategorias(r.data)).catch(() => {});
-    catalogoApi.get<Banner[]>("/catalogo/banners").then((r) => setBanners(r.data)).catch(() => {});
+
   }, []);
+
+  const loadBanners = useCallback(async () => {
+    setBannersLoading(true); setBannersError(false);
+    try { setBanners((await catalogoApi.get<Banner[]>("/catalogo/banners")).data); }
+    catch { setBannersError(true); }
+    finally { setBannersLoading(false); }
+  }, []);
+  useEffect(() => { void loadBanners(); }, [loadBanners]);
 
   // Marcas: siempre disponibles. Si hay categoría elegida, se acotan a ella.
   useEffect(() => {
@@ -254,8 +262,7 @@ export function CatalogoPage() {
     window.scrollTo({ top: 0 });
   }, [filterSig]);
 
-  // ===== Showcase de destacados: SOLO los productos marcados como destacados.
-  const destacadosTop = useMemo(() => destacados.slice(0, 8), [destacados]);
+
 
   // Paginación: el servidor devuelve solo la página actual.
   const goToPage = (p: number) => {
@@ -291,7 +298,7 @@ export function CatalogoPage() {
       <Header totalItems={carrito.totalItems} onCartClick={() => setDrawerOpen(true)} searchValue={search} onSearchChange={setSearch} onFilterClick={focusFilters} onSearchSubmit={submitSearch} activeFilters={activeFilters} />
 
       {/* Hero solo cuando no hay búsqueda/filtros activos */}
-      {sinFiltros && (
+      {sinFiltros && vista === "todos" && (
         <Hero
           onExplore={scrollToCatalogo}
           productCount={total}
@@ -300,6 +307,22 @@ export function CatalogoPage() {
       )}
 
       <main className="mx-auto max-w-6xl px-4 py-10">
+        <nav aria-label="Secciones del catálogo" className="mb-6 flex gap-2 overflow-x-auto rounded-2xl border border-steel-light bg-steel/40 p-2">
+          {([{ key: "todos", label: "Todos los productos" }, { key: "destacados", label: "Destacados" }, { key: "promociones", label: "Promociones" }] as const).map(item => (
+            <button key={item.key} type="button" aria-current={vista === item.key ? "page" : undefined}
+              onClick={() => updateParams(p => { if (item.key === "todos") p.delete("vista"); else p.set("vista", item.key); p.delete("page"); })}
+              className={"min-h-12 flex-1 whitespace-nowrap rounded-xl px-4 text-sm font-bold transition-colors " + (vista === item.key ? "bg-sky-100 text-slate-900" : "text-ice-soft hover:bg-white/10")}>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+        {vista === "promociones" ? (
+          <section aria-labelledby="promociones-title" className="rounded-2xl border border-steel-light bg-steel/30 p-5">
+            <h2 id="promociones-title" className="font-display text-2xl font-bold">Promociones</h2>
+            <p className="mb-6 mt-2 text-sm text-ice-soft">Conoce las promociones publicadas por nuestra tienda.</p>
+            {bannersLoading ? <p role="status">Cargando promociones…</p> : bannersError ? <div role="alert"><p>No se pudieron cargar las promociones.</p><button type="button" onClick={loadBanners} className="mt-4 rounded-lg bg-electric-deep px-4 py-3 text-white">Reintentar</button></div> : banners.length ? <BannerCarousel banners={banners} onImageClick={openLightbox} /> : <p className="py-10 text-center text-ice-soft">Por ahora no hay promociones publicadas. Puedes explorar todos nuestros productos o los destacados.</p>}
+          </section>
+        ) : <>
         {/* ===== Filtros + catálogo completo ===== */}
         <div ref={catalogoRef} className="scroll-mt-52">
           {/* Flecha para retroceder un nivel de filtro (la vista de colores tiene la suya). */}
@@ -315,7 +338,7 @@ export function CatalogoPage() {
           <section ref={filtersRef} tabIndex={-1} aria-labelledby="filter-title" className="catalog-filters mb-8 scroll-mt-52 rounded-2xl border border-sky-300/30 bg-[#123044] p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><h2 id="filter-title" className="flex items-center gap-2 font-display text-lg font-bold"><SlidersHorizontal size={21} className="text-sky-200" /> Encuentra tu equipo</h2>
-              <p className="mt-1 text-sm text-ice-soft">Explora por categoría o afina tu búsqueda con una marca.</p></div>
+              <p className="mt-1 text-sm text-ice-soft">Combina nombre, marca y modelo; por ejemplo: señuelo Rapala X-Rap.</p></div>
               {activeFilters > 0 && <button type="button" onClick={clearFilters} className="min-h-11 rounded-lg border border-white/25 px-3 text-sm font-semibold text-white">Limpiar filtros ({activeFilters})</button>}
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -410,7 +433,7 @@ export function CatalogoPage() {
                     </span>
                     <div>
                       <h2 className="font-display text-xl font-extrabold tracking-tight text-ice sm:text-2xl">
-                        {sinFiltros ? "Todos los productos" : "Resultados"}
+                        {vista === "destacados" ? "Productos destacados" : sinFiltros ? "Todos los productos" : "Resultados"}
                       </h2>
                       <p className="text-xs font-medium uppercase tracking-wider text-ice-faint">
                         {sinFiltros ? "Catálogo completo" : "Búsqueda filtrada"}
@@ -465,29 +488,7 @@ export function CatalogoPage() {
             )}
           </section>
         </div>
-        {banners.length > 0 && sinFiltros && (
-          <section className="mt-10 animate-fade-in">
-            <BannerCarousel banners={banners} onImageClick={openLightbox} />
-          </section>
-        )}
-
-        {/* ===== Showcase: solo productos realmente marcados como destacados ===== */}
-        {sinFiltros && !loading && destacadosTop.length > 0 && (
-          <div className="mt-12 space-y-14">
-            <ProductSection
-              id="destacados"
-              icon={Flame}
-              accent="strike"
-              title="Productos destacados"
-              subtitle="Una selección para tu próxima salida"
-              productos={destacadosTop}
-              badge="TOP" layout="rail"
-              onAdd={handleAdd}
-              onShowDetail={setDetalle}
-            />
-          </div>
-        )}
-
+        </>}
       </main>
 
       <Footer />
