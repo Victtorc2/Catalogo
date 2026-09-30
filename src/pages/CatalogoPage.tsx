@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Fish, MessageCircle, LayoutGrid, Layers, ChevronLeft, ArrowUp, Check, ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import { catalogoApi } from "@/api/client";
@@ -38,6 +38,17 @@ export function CatalogoPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [categorias, setCategorias] = useState<CatalogoCategoria[]>([]);
+  // Primero las familias más vendidas; el resto se conserva en orden alfabético.
+  const categoriasOrdenadas = useMemo(() => {
+    const prioridad = (nombre: string) => {
+      const normalizado = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const grupos = [/\bsenuelos?\b/, /\bvinilos?\b/, /\bjigs?\b/];
+      const indice = grupos.findIndex(patron => patron.test(normalizado));
+      return indice === -1 ? grupos.length : indice;
+    };
+    return [...categorias].sort((a, b) => prioridad(a.nombre) - prioridad(b.nombre)
+      || a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
+  }, [categorias]);
   const [marcas, setMarcas] = useState<CatalogoMarca[]>([]);
   const [modelos, setModelos] = useState<CatalogoModelo[]>([]);
   const [modelosLoading, setModelosLoading] = useState(false);
@@ -342,12 +353,12 @@ export function CatalogoPage() {
               {activeFilters > 0 && <button type="button" onClick={clearFilters} className="min-h-11 rounded-lg border border-white/25 px-3 text-sm font-semibold text-white">Limpiar filtros ({activeFilters})</button>}
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <CategoryFilter categorias={categorias} selected={catFilter} onChange={handleCategoria} />
+              <CategoryFilter categorias={categoriasOrdenadas} selected={catFilter} onChange={handleCategoria} />
               <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
             </div>
             {categorias.length > 0 && <div aria-label="Categorías rápidas" className="mt-4 flex flex-wrap gap-2">
               <button type="button" aria-pressed={catFilter === null} onClick={() => handleCategoria(null)} className={"category-chip " + (catFilter === null ? "is-selected" : "")}>Todas las categorías</button>
-              {categorias.slice(0, 8).map(c => <button key={c.id} type="button" aria-pressed={catFilter === c.id} onClick={() => handleCategoria(c.id)} className={"category-chip " + (catFilter === c.id ? "is-selected" : "")}>{c.nombre} <span className="opacity-75">{c.cantidad_productos}</span></button>)}
+              {categoriasOrdenadas.map(c => <button key={c.id} type="button" aria-pressed={catFilter === c.id} onClick={() => handleCategoria(c.id)} className={"category-chip " + (catFilter === c.id ? "is-selected" : "")}>{c.nombre} <span className="opacity-75">{c.cantidad_productos}</span></button>)}
             </div>}
             {activeFilters > 0 && <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4" aria-label="Filtros activos">
               {qParam && <button type="button" onClick={() => setSearch("")} className="active-filter">Búsqueda: {qParam} <X size={15} /></button>}
