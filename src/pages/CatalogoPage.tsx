@@ -38,16 +38,25 @@ export function CatalogoPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [categorias, setCategorias] = useState<CatalogoCategoria[]>([]);
-  // Primero las familias más vendidas; el resto se conserva en orden alfabético.
-  const categoriasOrdenadas = useMemo(() => {
-    const prioridad = (nombre: string) => {
-      const normalizado = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const grupos = [/\bsenuelos?\b/, /\bvinilos?\b/, /\bjigs?\b/];
-      const indice = grupos.findIndex(patron => patron.test(normalizado));
-      return indice === -1 ? grupos.length : indice;
-    };
-    return [...categorias].sort((a, b) => prioridad(a.nombre) - prioridad(b.nombre)
-      || a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
+  const [mostrarMasCategorias, setMostrarMasCategorias] = useState(false);
+  const { categoriasPrincipales, categoriasExtra, categoriasOrdenadas } = useMemo(() => {
+    const familias = [
+      { label: "Señuelos", patron: /\bsenuelos?\b/ },
+      { label: "Vinilos", patron: /\bvinilos?\b/ },
+      { label: "Jigs", patron: /\bjigs?\b/ },
+      { label: "Cañas", patron: /\bcanas?\b/ },
+      { label: "Carretes", patron: /\bcarretes?\b/ },
+    ];
+    const normalizar = (nombre: string) => nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const principales = familias.flatMap(familia => {
+      const categoria = categorias.find(c => normalizar(c.nombre) === normalizar(familia.label))
+        ?? categorias.find(c => familia.patron.test(normalizar(c.nombre)));
+      return categoria ? [{ ...categoria, nombre: familia.label }] : [];
+    });
+    const ids = new Set(principales.map(c => c.id));
+    const extra = categorias.filter(c => !ids.has(c.id))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
+    return { categoriasPrincipales: principales, categoriasExtra: extra, categoriasOrdenadas: [...principales, ...extra] };
   }, [categorias]);
   const [marcas, setMarcas] = useState<CatalogoMarca[]>([]);
   const [modelos, setModelos] = useState<CatalogoModelo[]>([]);
@@ -357,8 +366,11 @@ export function CatalogoPage() {
               <BrandFilter marcas={marcas} selected={marcaFilter} onChange={handleMarca} />
             </div>
             {categorias.length > 0 && <div aria-label="Categorías rápidas" className="mt-4 flex flex-wrap gap-2">
-              <button type="button" aria-pressed={catFilter === null} onClick={() => handleCategoria(null)} className={"category-chip " + (catFilter === null ? "is-selected" : "")}>Todas las categorías</button>
-              {categoriasOrdenadas.map(c => <button key={c.id} type="button" aria-pressed={catFilter === c.id} onClick={() => handleCategoria(c.id)} className={"category-chip " + (catFilter === c.id ? "is-selected" : "")}>{c.nombre} <span className="opacity-75">{c.cantidad_productos}</span></button>)}
+              {categoriasPrincipales.map(c => <button key={c.id} type="button" aria-pressed={catFilter === c.id} onClick={() => handleCategoria(c.id)} className={"category-chip " + (catFilter === c.id ? "is-selected" : "")}>{c.nombre} <span className="opacity-75">{c.cantidad_productos}</span></button>)}
+              {categoriasExtra.length > 0 && <button type="button" aria-expanded={mostrarMasCategorias} aria-controls="mas-categorias" onClick={() => setMostrarMasCategorias(value => !value)} className="category-chip">{mostrarMasCategorias ? "Menos" : "Más"}</button>}
+              {mostrarMasCategorias && categoriasExtra.length > 0 && <div id="mas-categorias" aria-label="Más categorías" className="flex w-full flex-wrap gap-2 border-t border-white/10 pt-3">
+                {categoriasExtra.map(c => <button key={c.id} type="button" aria-pressed={catFilter === c.id} onClick={() => handleCategoria(c.id)} className={"category-chip " + (catFilter === c.id ? "is-selected" : "")}>{c.nombre} <span className="opacity-75">{c.cantidad_productos}</span></button>)}
+              </div>}
             </div>}
             {activeFilters > 0 && <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4" aria-label="Filtros activos">
               {qParam && <button type="button" onClick={() => setSearch("")} className="active-filter">Búsqueda: {qParam} <X size={15} /></button>}
